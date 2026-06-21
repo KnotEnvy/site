@@ -1,26 +1,139 @@
 @import "tailwindcss";
 
+/* ----------------------------------------------------------------------------
+   Design tokens — distilled from the brief's screenshots
+   sky/cloud editorial look · bold condensed display type · color-coded sections
+---------------------------------------------------------------------------- */
+@theme {
+  /* Brand palette */
+  --color-sky: #3e9bf0;
+  --color-sky-light: #bfe2ff;
+  --color-sky-deep: #2b7fd6;
+  --color-paper: #f7f4e9;
+  --color-ink: #0e1116;
+  --color-blaze: #2f7df6;
+
+  /* Section accents */
+  --color-heaven: #3b82f6;
+  --color-science: #9810e0;
+  --color-hell: #e0461f;
+
+  /* Type families (wired by next/font in layout.tsx) */
+  --font-display: var(--font-anton), "Arial Narrow", sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sky-gradient: linear-gradient(
+    180deg,
+    #cfe9ff 0%,
+    #9fd0fb 22%,
+    #6fb7f5 48%,
+    #4aa3f0 72%,
+    #2f8fe6 100%
+  );
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  scroll-behavior: smooth; /* fallback when Lenis/JS is unavailable */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Lenis (lenis/react) recommended base styles */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Fixed sky backdrop sits behind the transparent WebGL cloud canvas */
+  background: var(--sky-gradient) no-repeat fixed;
+  background-size: cover;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Heavy condensed display headings — the signature look */
+.font-display,
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+/* Fluid display sizes */
+.display-xl {
+  font-size: clamp(2.75rem, 11vw, 9rem);
+}
+.display-lg {
+  font-size: clamp(2.25rem, 8vw, 6rem);
+}
+.display-md {
+  font-size: clamp(1.75rem, 5vw, 3.5rem);
+}
+
+/* Hide scrollbars on horizontal swipe rails (still scrollable / accessible) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ----------------------------------------------------------------------------
+   Reveal-on-scroll — visible by default; only hidden once <RevealController>
+   adds `reveal-ready`. Guarantees content is never stuck invisible if JS fails.
+---------------------------------------------------------------------------- */
+html.reveal-ready .reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+html.reveal-ready .reveal.reveal--wipe {
+  transform: translateY(105%);
+}
+html.reveal-ready .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  html.reveal-ready .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

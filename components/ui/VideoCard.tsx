@@ -1,0 +1,54 @@
+import Photo from "@/components/ui/Photo";
+import { clsx } from "@/lib/clsx";
+
+export type Video = {
+  title: string;
+  duration: string;
+  img: string;
+  /** Real YouTube/playlist URL drops in here later. */
+  href?: string;
+};
+
+export default function VideoCard({ video }: { video: Video }) {
+  const cardClass = clsx(
+    "group relative flex w-[78vw] max-w-[320px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-white/95 shadow-xl ring-1 ring-black/5 transition",
+    video.href && "hover:-translate-y-1 hover:shadow-2xl"
+  );
+
+  const inner = (
+    <>
+      <div className="relative aspect-video">
+        <Photo
+          src={video.img}
+          alt={video.title}
+          overlay
+          className="h-full w-full transition duration-500 group-hover:scale-105"
+        />
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="grid h-14 w-14 place-items-center rounded-full bg-white/85 text-ink shadow-lg transition group-hover:scale-110">
+            <svg viewBox="0 0 24 24" className="ml-1 h-6 w-6" fill="currentColor" aria-hidden="true">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </span>
+        <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">
+          {video.duration}
+        </span>
+      </div>
+      <div className="p-4">
+        <h4 className="font-sans text-base font-semibold normal-case leading-snug tracking-normal text-ink">
+          {video.title}
+        </h4>
+      </div>
+    </>
+  );
+
+  if (video.href) {
+    return (
+      <a href={video.href} target="_blank" rel="noopener noreferrer" className={cardClass}>
+        {inner}
+      </a>
+    );
+  }
+  return <div className={cardClass}>{inner}</div>;
+}
