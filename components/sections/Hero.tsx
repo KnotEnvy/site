@@ -17,8 +17,8 @@ const INTRO = [
     body: "Death is the one certainty we all share. Whatever you believe, you will face it — and so will everyone you love. This isn't a fringe topic. It's the most human one there is.",
   },
   {
-    title: "Facts over bias",
-    body: "NDEs are reported across every culture, age, and belief system. They override opinion precisely because they are rooted in lived, consistent, cross-checked reality.",
+    title: "A scientific case for God",
+    body: "Reported across every culture, age, and belief system, NDEs override opinion precisely because they're rooted in lived, consistent, cross-checked reality — the kind of evidence science takes seriously.",
   },
 ];
 
@@ -64,8 +64,9 @@ export default function Hero() {
           <Reveal delay={0.5} className="mt-8 max-w-xl">
             <p className="rounded-2xl bg-paper/85 p-5 font-sans text-base normal-case leading-relaxed tracking-normal text-ink/80 backdrop-blur sm:text-lg">
               Across millions of cases worldwide, the accounts of those who
-              died and came back align with striking consistency. This is the
-              evidence — examined with{" "}
+              died and came back align with striking consistency — a growing body
+              of evidence that points toward God, and an afterlife that is real.
+              Examined with{" "}
               <span className="font-semibold text-ink">
                 no biases and no opinions
               </span>
@@ -132,7 +133,7 @@ export default function Hero() {
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
           className="text-sm font-semibold uppercase tracking-[0.2em] text-white/90"
         >
-          Scroll ↓
+          Begin the descent ↓
         </motion.div>
       </motion.div>
     </section>

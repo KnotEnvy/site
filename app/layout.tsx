@@ -4,6 +4,7 @@ import "./globals.css";
 import SmoothScroll from "@/components/providers/SmoothScroll";
 import CloudCanvas from "@/components/three/CloudCanvas";
 import RevealController from "@/components/ui/RevealController";
+import DescentRail from "@/components/ui/DescentRail";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
@@ -51,6 +52,9 @@ export default function RootLayout({
 
         {/* Arms scroll-reveal animations (content is visible without it) */}
         <RevealController />
+
+        {/* Heaven→Hell scroll progress rail */}
+        <DescentRail />
 
         {/* Lenis momentum scroll wraps the document */}
         <SmoothScroll>

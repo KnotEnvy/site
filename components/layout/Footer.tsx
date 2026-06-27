@@ -1,9 +1,11 @@
+import SplitText from "@/components/ui/SplitText";
+
 export default function Footer() {
   return (
-    <footer className="relative z-10 bg-ink text-paper">
+    <footer className="relative z-10 bg-gradient-to-b from-transparent via-ink/85 to-ink text-paper">
       <div className="mx-auto max-w-7xl px-6 py-16">
         <p className="font-display text-4xl leading-none sm:text-6xl">
-          Death is not the end.
+          <SplitText text="Death is not the end." />
         </p>
         <p className="mt-4 max-w-xl font-sans text-base normal-case tracking-normal text-paper/70">
           Near-death experiences, examined without bias — and what they reveal

@@ -14,12 +14,45 @@ export interface CloudQuality {
   limit: number;
   /** Whether antialiasing is worth the cost. */
   antialias: boolean;
+  /** Run the postprocessing stack (Bloom/Vignette)? Off on low-end. */
+  effects: boolean;
+  /** MSAA sample count for the EffectComposer (0 = none). */
+  multisampling: number;
+  /** Number of rising ember particles in the lower descent. */
+  embers: number;
 }
 
 const QUALITY: Record<Tier, CloudQuality> = {
-  low: { tier: "low", dpr: [1, 1], segments: 16, limit: 120, antialias: false },
-  mid: { tier: "mid", dpr: [1, 1.5], segments: 30, limit: 200, antialias: true },
-  high: { tier: "high", dpr: [1, 2], segments: 44, limit: 300, antialias: true },
+  low: {
+    tier: "low",
+    dpr: [1, 1],
+    segments: 16,
+    limit: 120,
+    antialias: false,
+    effects: false,
+    multisampling: 0,
+    embers: 0,
+  },
+  mid: {
+    tier: "mid",
+    dpr: [1, 1.5],
+    segments: 30,
+    limit: 200,
+    antialias: true,
+    effects: true,
+    multisampling: 0,
+    embers: 70,
+  },
+  high: {
+    tier: "high",
+    dpr: [1, 1.75],
+    segments: 44,
+    limit: 300,
+    antialias: true,
+    effects: true,
+    multisampling: 2,
+    embers: 140,
+  },
 };
 
 function detectQuality(): CloudQuality {

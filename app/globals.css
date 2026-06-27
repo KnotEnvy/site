@@ -24,13 +24,19 @@
 }
 
 :root {
+  /* The Descent, as a static fallback: Heaven (top) → Hell (bottom).
+     Spans the full page height, so even with WebGL disabled the scroll still
+     reads as a fall from light into fire. The WebGL sky paints over this. */
   --sky-gradient: linear-gradient(
     180deg,
     #cfe9ff 0%,
-    #9fd0fb 22%,
-    #6fb7f5 48%,
-    #4aa3f0 72%,
-    #2f8fe6 100%
+    #9fd0fb 14%,
+    #6fb7f5 28%,
+    #6f7fc8 44%,
+    #9c6fae 56%,
+    #c0492a 72%,
+    #7a1a08 86%,
+    #180504 100%
   );
 }
 
@@ -57,9 +63,12 @@ html.lenis body {
 }
 
 body {
-  /* Fixed sky backdrop sits behind the transparent WebGL cloud canvas */
-  background: var(--sky-gradient) no-repeat fixed;
-  background-size: cover;
+  /* Sky backdrop behind the transparent WebGL cloud canvas. Spans the full
+     document height (not viewport-fixed) so the fallback gradient itself
+     descends Heaven→Hell as you scroll. The WebGL sky paints over it. */
+  background: var(--sky-gradient) no-repeat;
+  background-size: 100% 100%;
+  background-attachment: scroll;
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

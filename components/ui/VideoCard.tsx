@@ -1,3 +1,5 @@
+"use client";
+
 import Photo from "@/components/ui/Photo";
 import { clsx } from "@/lib/clsx";
 
@@ -9,10 +11,17 @@ export type Video = {
   href?: string;
 };
 
-export default function VideoCard({ video }: { video: Video }) {
+export default function VideoCard({
+  video,
+  onOpen,
+}: {
+  video: Video;
+  /** Open the in-page lightbox. When omitted, an `href` opens in a new tab. */
+  onOpen?: (video: Video) => void;
+}) {
   const cardClass = clsx(
-    "group relative flex w-[78vw] max-w-[320px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-white/95 shadow-xl ring-1 ring-black/5 transition",
-    video.href && "hover:-translate-y-1 hover:shadow-2xl"
+    "group relative flex w-[78vw] max-w-[320px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-white/95 text-left shadow-xl ring-1 ring-black/5 transition",
+    (onOpen || video.href) && "hover:-translate-y-1 hover:shadow-2xl"
   );
 
   const inner = (
@@ -43,6 +52,13 @@ export default function VideoCard({ video }: { video: Video }) {
     </>
   );
 
+  if (onOpen) {
+    return (
+      <button type="button" onClick={() => onOpen(video)} className={cardClass}>
+        {inner}
+      </button>
+    );
+  }
   if (video.href) {
     return (
       <a href={video.href} target="_blank" rel="noopener noreferrer" className={cardClass}>

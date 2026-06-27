@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/ui/Reveal";
+import SplitText from "@/components/ui/SplitText";
 import HorizontalScroller from "@/components/ui/HorizontalScroller";
 import BibleCard, { type Bible } from "@/components/ui/BibleCard";
 import { IMG } from "@/lib/media";
@@ -58,14 +59,19 @@ const BIBLES: Bible[] = [
 
 export default function BibleRecommendations() {
   return (
-    <section id="bibles" className="relative z-10 bg-paper py-28 text-ink sm:py-36">
+    <section id="bibles" className="relative z-10 py-28 sm:py-36">
       <div className="mx-auto mb-12 max-w-7xl px-6">
         <Reveal>
-          <p className="text-sm font-bold uppercase tracking-[0.24em] text-blaze">
+          <p className="text-sm font-bold uppercase tracking-[0.24em] text-white/80 drop-shadow">
             Where to start reading
           </p>
-          <h2 className="display-lg mt-3">Bible Recommendations</h2>
-          <p className="mt-6 max-w-2xl font-sans text-lg normal-case leading-relaxed tracking-normal text-ink/70">
+          <h2 className="display-lg mt-3">
+            <SplitText
+              text="Bible Recommendations"
+              className="text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.55)]"
+            />
+          </h2>
+          <p className="mt-6 max-w-2xl rounded-2xl bg-ink/55 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-paper/90 backdrop-blur">
             These are our personal favorites — the translations that genuinely
             helped us understand Scripture and apply it to everyday life. Swipe
             through, and find the one that fits you.

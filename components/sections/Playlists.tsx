@@ -1,6 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import { Reveal } from "@/components/ui/Reveal";
+import SplitText from "@/components/ui/SplitText";
 import HorizontalScroller from "@/components/ui/HorizontalScroller";
 import VideoCard, { type Video } from "@/components/ui/VideoCard";
+import VideoModal from "@/components/ui/VideoModal";
 import { clsx } from "@/lib/clsx";
 import { IMG } from "@/lib/media";
 
@@ -66,6 +71,8 @@ const CATEGORIES: Category[] = [
 ];
 
 export default function Playlists() {
+  const [active, setActive] = useState<Video | null>(null);
+
   return (
     <section id="playlists" className="relative z-10 py-28 sm:py-36">
       <div className="mx-auto max-w-7xl px-4 text-center sm:px-6">
@@ -73,8 +80,11 @@ export default function Playlists() {
           <p className="text-sm font-bold uppercase tracking-[0.24em] text-white/90">
             Watch &amp; decide for yourself
           </p>
-          <h2 className="display-lg mt-3 text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.25)]">
-            Video Playlists
+          <h2 className="display-lg mt-3">
+            <SplitText
+              text="Video Playlists"
+              className="text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.35)]"
+            />
           </h2>
         </Reveal>
       </div>
@@ -84,7 +94,7 @@ export default function Playlists() {
           <div key={cat.id}>
             <div className="mx-auto mb-6 max-w-7xl px-6">
               <Reveal>
-                <div className="max-w-2xl rounded-2xl bg-white/92 p-6 shadow-xl ring-1 ring-black/5 backdrop-blur">
+                <div className="max-w-2xl rounded-2xl bg-paper/85 p-6 shadow-xl ring-1 ring-black/5 backdrop-blur">
                   <span className={clsx("text-xs font-bold uppercase tracking-[0.22em]", cat.accent)}>
                     {cat.kicker}
                   </span>
@@ -104,13 +114,15 @@ export default function Playlists() {
             <Reveal>
               <HorizontalScroller label={`${cat.title} videos`} className="mx-auto max-w-7xl">
                 {cat.videos.map((v) => (
-                  <VideoCard key={v.title} video={v} />
+                  <VideoCard key={v.title} video={v} onOpen={setActive} />
                 ))}
               </HorizontalScroller>
             </Reveal>
           </div>
         ))}
       </div>
+
+      <VideoModal video={active} onClose={() => setActive(null)} />
     </section>
   );
 }

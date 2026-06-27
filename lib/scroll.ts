@@ -12,3 +12,15 @@ import { motionValue } from "motion/react";
 export const scrollProgress = motionValue(0);
 
 export const pointer = { x: 0, y: 0 };
+
+/** A click/tap "shockwave" through the sky, in normalised device coords (y up). */
+export type Ripple = { x: number; y: number; start: number };
+
+/** Pending ripples; the WebGL scene drains this queue into a burst pool. */
+export const ripples: Ripple[] = [];
+
+/** Queue a ripple at NDC (x, y in -1..1, y up). Called on pointer-down. */
+export function addRipple(x: number, y: number): void {
+  ripples.push({ x, y, start: performance.now() });
+  if (ripples.length > 12) ripples.shift();
+}

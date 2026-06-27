@@ -1,6 +1,7 @@
 "use client";
 
 import { useLenis } from "lenis/react";
+import Magnetic from "@/components/ui/Magnetic";
 
 const NAV = [
   { label: "The Truth", target: "#purpose" },
@@ -44,13 +45,15 @@ export default function Header() {
         </a>
 
         <div className="flex flex-1 justify-end">
-          <a
-            href="#playlists"
-            onClick={go("#playlists")}
-            className="rounded-full bg-blaze px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-lg shadow-blaze/30 transition hover:bg-sky-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            Watch Stories
-          </a>
+          <Magnetic className="inline-block">
+            <a
+              href="#playlists"
+              onClick={go("#playlists")}
+              className="inline-block rounded-full bg-blaze px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-white shadow-lg shadow-blaze/30 transition hover:bg-sky-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              Watch Stories
+            </a>
+          </Magnetic>
         </div>
       </div>
 
