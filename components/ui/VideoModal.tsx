@@ -23,8 +23,11 @@ function toEmbedUrl(href?: string): string | null {
     if (host === "youtube.com" || host === "m.youtube.com") {
       if (u.pathname.startsWith("/embed/")) return href;
       const v = u.searchParams.get("v");
-      if (v) return `https://www.youtube.com/embed/${v}`;
       const list = u.searchParams.get("list");
+      // Keep the playlist context when both are present so the embed offers
+      // the rest of the playlist after (or alongside) the lead video.
+      if (v && list) return `https://www.youtube.com/embed/${v}?list=${list}`;
+      if (v) return `https://www.youtube.com/embed/${v}`;
       if (list) return `https://www.youtube.com/embed/videoseries?list=${list}`;
     }
   } catch {
@@ -133,7 +136,9 @@ export default function VideoModal({
                 <h3 className="font-sans text-lg font-semibold leading-snug text-white">
                   {video.title}
                 </h3>
-                <p className="mt-1 text-sm text-white/55">{video.duration}</p>
+                {video.duration && (
+                  <p className="mt-1 text-sm text-white/55">{video.duration}</p>
+                )}
               </div>
               {video.href && (
                 <a

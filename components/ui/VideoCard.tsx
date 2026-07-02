@@ -5,9 +5,10 @@ import { clsx } from "@/lib/clsx";
 
 export type Video = {
   title: string;
-  duration: string;
+  /** Omitted for real links whose runtime we don't control. */
+  duration?: string;
   img: string;
-  /** Real YouTube/playlist URL drops in here later. */
+  /** Real YouTube video/playlist URL; opens in the lightbox. */
   href?: string;
 };
 
@@ -40,9 +41,11 @@ export default function VideoCard({
             </svg>
           </span>
         </span>
-        <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">
-          {video.duration}
-        </span>
+        {video.duration && (
+          <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">
+            {video.duration}
+          </span>
+        )}
       </div>
       <div className="p-4">
         <h4 className="font-sans text-base font-semibold normal-case leading-snug tracking-normal text-ink">

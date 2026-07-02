@@ -16,6 +16,8 @@ type Category = {
   blurb: string;
   accent: string; // text color class
   bar: string; // bg color class
+  /** The real YouTube playlist behind this category. */
+  playlist: string;
   videos: Video[];
 };
 
@@ -28,8 +30,13 @@ const CATEGORIES: Category[] = [
     bar: "bg-heaven",
     blurb:
       "A sudden release from pain. A tunnel of brilliant light. A love so complete it rearranges a whole life. These are the testimonies of people who touched Heaven and were sent back.",
+    playlist: "https://www.youtube.com/playlist?list=PLQ5vRAVqoE8g",
     videos: [
-      { title: "Pronounced dead for 20 minutes: what she saw", duration: "18:42", img: IMG.heaven[0] },
+      {
+        title: "The incredible reality of Heaven, with John Burke",
+        img: IMG.heaven[0],
+        href: "https://www.youtube.com/watch?v=WpY69O4fiZM&list=PLQ5vRAVqoE8g",
+      },
       { title: "“I didn’t want to come back”: a surgeon’s account", duration: "24:10", img: IMG.heaven[1] },
       { title: "The life review: every moment, felt at once", duration: "12:55", img: IMG.heaven[2] },
       { title: "Meeting relatives he never knew had died", duration: "31:07", img: IMG.heaven[4] },
@@ -44,8 +51,13 @@ const CATEGORIES: Category[] = [
     bar: "bg-science",
     blurb:
       "Cardiac-arrest timelines, verified out-of-body observations, and the stubborn question at the center of it all: how does consciousness keep working after the heart has stopped?",
+    playlist: "https://www.youtube.com/playlist?list=PLGiV6gNcerXY",
     videos: [
-      { title: "Verified out-of-body observations under flatline", duration: "27:18", img: IMG.science[0] },
+      {
+        title: "NDEs, neuroscience, and the soul, with Dr. Lee Warren",
+        img: IMG.science[0],
+        href: "https://www.youtube.com/watch?v=WsGpFc79O0k&list=PLGiV6gNcerXY",
+      },
       { title: "What the AWARE study actually found", duration: "21:44", img: IMG.science[2] },
       { title: "Does the dying-brain hypothesis hold up?", duration: "33:02", img: IMG.science[1] },
       { title: "Cardiologists on consistency across thousands of cases", duration: "19:51", img: IMG.science[4] },
@@ -60,8 +72,13 @@ const CATEGORIES: Category[] = [
     bar: "bg-hell",
     blurb:
       "Not every crossing is peaceful. These accounts come from people who met something terrifying on the other side, and who came back grateful for a second chance.",
+    playlist: "https://www.youtube.com/playlist?list=PLCL4ntHncnUw",
     videos: [
-      { title: "“I was falling and it never stopped”", duration: "22:09", img: IMG.hell[2] },
+      {
+        title: "A mortician dies, sees Hell, and returns with a message",
+        img: IMG.hell[2],
+        href: "https://www.youtube.com/watch?v=ybi7vdtOAfM&list=PLCL4ntHncnUw",
+      },
       { title: "An atheist’s terrifying crossing, and his return", duration: "29:33", img: IMG.hell[0] },
       { title: "The void: absence as its own torment", duration: "15:20", img: IMG.hell[3] },
       { title: "Brought back on the table, changed for good", duration: "26:47", img: IMG.hell[1] },
@@ -107,6 +124,20 @@ export default function Playlists() {
                   <p className="mt-3 font-sans text-base normal-case leading-relaxed tracking-normal text-ink/75">
                     {cat.blurb}
                   </p>
+                  <a
+                    href={cat.playlist}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={clsx(
+                      "mt-4 inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-[0.14em] underline-offset-4 transition hover:underline",
+                      cat.accent
+                    )}
+                  >
+                    Watch the full playlist
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                      <path d="M7 17L17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </a>
                 </div>
               </Reveal>
             </div>

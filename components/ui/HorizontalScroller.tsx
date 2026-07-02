@@ -28,15 +28,21 @@ export default function HorizontalScroller({ children, label, className }: Props
     const el = trackRef.current;
     if (!el) return;
     drag.current = { active: true, startX: e.clientX, startLeft: el.scrollLeft, moved: false };
-    el.setPointerCapture(e.pointerId);
+    // Do NOT capture the pointer here: while the track holds the capture, the
+    // browser retargets the eventual `click` to the track itself, so buttons
+    // and links inside the rail can never be clicked. Capture is taken lazily
+    // in onPointerMove, once the gesture is unambiguously a drag.
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     const el = trackRef.current;
     if (!el || !drag.current.active) return;
     const dx = e.clientX - drag.current.startX;
-    if (Math.abs(dx) > 4) drag.current.moved = true;
-    el.scrollLeft = drag.current.startLeft - dx;
+    if (!drag.current.moved && Math.abs(dx) > 4) {
+      drag.current.moved = true;
+      el.setPointerCapture(e.pointerId);
+    }
+    if (drag.current.moved) el.scrollLeft = drag.current.startLeft - dx;
   };
 
   const endDrag = (e: React.PointerEvent) => {
