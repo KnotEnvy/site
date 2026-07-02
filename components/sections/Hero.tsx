@@ -10,15 +10,15 @@ import { IMG } from "@/lib/media";
 const INTRO = [
   {
     title: "What is an NDE?",
-    body: "A near-death experience happens when the body is clinically dead — heart stopped, no brain activity — yet awareness continues, often with heightened clarity, a life review, and encounters beyond the physical.",
+    body: "A near-death experience happens when someone is revived from clinical death. The heart has stopped, the brain has gone quiet, and yet the person returns with vivid memories of what happened while they were gone. Many call it the most real thing they have ever lived through.",
   },
   {
     title: "Why it matters to everyone",
-    body: "Death is the one certainty we all share. Whatever you believe, you will face it — and so will everyone you love. This isn't a fringe topic. It's the most human one there is.",
+    body: "Death is the one appointment nobody cancels. Whatever you believe about what comes next, you will find out, and so will everyone you love. That makes this worth an honest look now, while the question is still yours to ask.",
   },
   {
     title: "A scientific case for God",
-    body: "Reported across every culture, age, and belief system, NDEs override opinion precisely because they're rooted in lived, consistent, cross-checked reality — the kind of evidence science takes seriously.",
+    body: "These reports surface in every culture, every generation, and every belief system, including from people who expected nothing at all. When testimony agrees that consistently, at that scale, science pays attention. So should we.",
   },
 ];
 
@@ -53,7 +53,7 @@ export default function Hero() {
                 <StaggerItem wipe>Heaven</StaggerItem>
               </span>
               <span className="block overflow-hidden">
-                <StaggerItem wipe delay={0.1}>or Hell —</StaggerItem>
+                <StaggerItem wipe delay={0.1}>or Hell.</StaggerItem>
               </span>
               <span className="block overflow-hidden text-ink">
                 <StaggerItem wipe delay={0.2}>Real?</StaggerItem>
@@ -63,14 +63,15 @@ export default function Hero() {
 
           <Reveal delay={0.5} className="mt-8 max-w-xl">
             <p className="rounded-2xl bg-paper/85 p-5 font-sans text-base normal-case leading-relaxed tracking-normal text-ink/80 backdrop-blur sm:text-lg">
-              Across millions of cases worldwide, the accounts of those who
-              died and came back align with striking consistency — a growing body
-              of evidence that points toward God, and an afterlife that is real.
-              Examined with{" "}
+              Millions of people have died, been revived, and returned
+              describing the same journey. Their accounts line up across
+              cultures, ages, and beliefs, and together they make a serious
+              case that God is real and death is not the end. We gathered the
+              strongest of that evidence,{" "}
               <span className="font-semibold text-ink">
-                no biases and no opinions
+                without bias or agenda
               </span>
-              . Just reality.
+              . What you do with it is up to you.
             </p>
           </Reveal>
         </div>

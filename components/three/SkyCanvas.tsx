@@ -7,16 +7,17 @@
    assumes values returned from hooks stay frozen) does not apply here. */
 /* eslint-disable react-hooks/immutability */
 
+/* IMPORTANT (learned the hard way): r3f CLONES a `uniforms` object passed as a
+   JSX prop — the material on the mesh gets its own uniform wrappers. Mutating
+   the useMemo'd prop object from useFrame therefore does NOTHING for scalar
+   uniforms (`u.value = x` writes to a dead clone; `.value.copy()` only worked
+   by accident because the clone shares the same Color instance). Every frame-
+   driven uniform update below reads the material off the mesh ref instead. */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Clouds, Cloud } from "@react-three/drei";
-import {
-  EffectComposer,
-  SelectiveBloom,
-  Vignette,
-  Selection,
-  Select,
-} from "@react-three/postprocessing";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { useReducedMotion } from "motion/react";
 import * as THREE from "three";
 import { scrollProgress, pointer, ripples } from "@/lib/scroll";
@@ -89,10 +90,13 @@ function SkyDome({ state }: { state: SkyState }) {
   );
 
   useFrame(() => {
-    uniforms.uTop.value.copy(state.top);
-    uniforms.uHorizon.value.copy(state.horizon);
-    uniforms.uGround.value.copy(state.ground);
-    if (ref.current) ref.current.position.copy(camera.position);
+    const mesh = ref.current;
+    if (!mesh) return;
+    const u = (mesh.material as THREE.ShaderMaterial).uniforms;
+    u.uTop.value.copy(state.top);
+    u.uHorizon.value.copy(state.horizon);
+    u.uGround.value.copy(state.ground);
+    mesh.position.copy(camera.position);
   });
 
   return (
@@ -184,20 +188,21 @@ function Embers({ count, state }: { count: number; state: SkyState }) {
       uPixelRatio: {
         value: typeof window !== "undefined" ? Math.min(window.devicePixelRatio, 2) : 1,
       },
-      uColorHot: { value: new THREE.Color("#ffd58a") },
-      uColorCool: { value: new THREE.Color("#ff3b14") },
+      // HDR-hot (>1) so ember cores cross the Bloom threshold like sparks.
+      uColorHot: { value: new THREE.Color("#ffd58a").multiplyScalar(2.2) },
+      uColorCool: { value: new THREE.Color("#ff3b14").multiplyScalar(1.6) },
     }),
     []
   );
 
   useFrame((_, delta) => {
-    uniforms.uTime.value += Math.min(delta, 0.05);
-    uniforms.uOpacity.value = state.ember;
     const p = ref.current;
-    if (p) {
-      // Surround the viewer: anchor the column below the camera so embers rise past it.
-      p.position.set(camera.position.x, camera.position.y - 18, camera.position.z - 2);
-    }
+    if (!p) return;
+    const u = (p.material as THREE.ShaderMaterial).uniforms;
+    u.uTime.value += Math.min(delta, 0.05);
+    u.uOpacity.value = state.ember;
+    // Surround the viewer: anchor the column below the camera so embers rise past it.
+    p.position.set(camera.position.x, camera.position.y - 18, camera.position.z - 2);
   });
 
   if (count === 0) return null;
@@ -246,10 +251,11 @@ const SHAFT_FRAG = /* glsl */ `
     rays = pow(rays, 3.0);
     float core = smoothstep(0.5, 0.0, r);          // luminous centre
     float falloff = smoothstep(0.5, 0.04, r);       // fade to the rim
-    float intensity = core * 1.3 + rays * falloff * 0.85;
+    // Rays carry the look; the core stays restrained so Heaven keeps its blue.
+    float intensity = core * 0.8 + rays * falloff * 1.0;
     float alpha = intensity * smoothstep(0.5, 0.0, r) * uStrength;
-    // Push past 1.0 so the Bloom threshold catches the brightest core.
-    gl_FragColor = vec4(uColor * (1.0 + core * 0.8), alpha);
+    // Push into HDR (>1) so the Bloom luminance threshold catches the shafts.
+    gl_FragColor = vec4(uColor * (1.15 + core * 0.85), alpha);
   }
 `;
 
@@ -266,22 +272,22 @@ function LightShaft({ state, calm }: { state: SkyState; calm: boolean }) {
   );
 
   useFrame((_, delta) => {
-    uniforms.uTime.value += Math.min(delta, 0.05) * (calm ? 0.25 : 1);
+    const m = ref.current;
+    if (!m) return;
+    const u = (m.material as THREE.ShaderMaterial).uniforms;
+    u.uTime.value += Math.min(delta, 0.05) * (calm ? 0.25 : 1);
     const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
     // Brightest at the very top; gone by the first third of the descent.
     const strength = 1 - THREE.MathUtils.smoothstep(sp, 0.04, 0.34);
-    uniforms.uStrength.value = strength;
+    u.uStrength.value = strength;
     // Tint with the sun so the radiance stays in chromatic sync with the sky.
-    uniforms.uColor.value.copy(state.sun).lerp(state.light, 0.4);
+    u.uColor.value.copy(state.sun).lerp(state.light, 0.4);
 
-    const m = ref.current;
-    if (m) {
-      m.visible = strength > 0.01;
-      // Sit at the sun and billboard toward the camera so the shafts always
-      // fan across the view; the clouds between occlude them into god-rays.
-      m.position.set(7, state.sunY, -32);
-      m.quaternion.copy(camera.quaternion);
-    }
+    m.visible = strength > 0.01;
+    // Sit at the sun and billboard toward the camera so the shafts always
+    // fan across the view; the clouds between occlude them into god-rays.
+    m.position.set(7, state.sunY, -32);
+    m.quaternion.copy(camera.quaternion);
   });
 
   return (
@@ -330,7 +336,8 @@ const LAVA_FRAG = /* glsl */ `
     vec3 col = mix(uHot, uCool, up * 0.85);
     float sides = smoothstep(0.0, 0.18, vUv.x) * smoothstep(1.0, 0.82, vUv.x);
     float alpha = edge * sides * uStrength;
-    gl_FragColor = vec4(col * (1.0 + body * 0.6), alpha);
+    // HDR-hot at the base so the flame crosses the Bloom threshold and glows.
+    gl_FragColor = vec4(col * (1.2 + body * 1.4), alpha);
   }
 `;
 
@@ -348,20 +355,20 @@ function LavaGlow({ state, calm }: { state: SkyState; calm: boolean }) {
   );
 
   useFrame((_, delta) => {
-    uniforms.uTime.value += Math.min(delta, 0.05) * (calm ? 0.3 : 1);
+    const m = ref.current;
+    if (!m) return;
+    const u = (m.material as THREE.ShaderMaterial).uniforms;
+    u.uTime.value += Math.min(delta, 0.05) * (calm ? 0.3 : 1);
     const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
     const strength = THREE.MathUtils.smoothstep(sp, 0.62, 0.92);
-    uniforms.uStrength.value = strength;
-    uniforms.uHot.value.copy(state.ground);
-    uniforms.uCool.value.copy(state.horizon);
+    u.uStrength.value = strength;
+    u.uHot.value.copy(state.ground);
+    u.uCool.value.copy(state.horizon);
 
-    const m = ref.current;
-    if (m) {
-      m.visible = strength > 0.01;
-      // Anchor below and ahead of the camera so the fire rises to meet you.
-      m.position.set(camera.position.x, camera.position.y - 11, camera.position.z - 15);
-      m.quaternion.copy(camera.quaternion);
-    }
+    m.visible = strength > 0.01;
+    // Anchor below and ahead of the camera so the fire rises to meet you.
+    m.position.set(camera.position.x, camera.position.y - 11, camera.position.z - 15);
+    m.quaternion.copy(camera.quaternion);
   });
 
   return (
@@ -462,7 +469,6 @@ function LensFlare({ state }: { state: SkyState }) {
     for (let i = 0; i < FLARE_GHOSTS.length; i++) {
       const g = FLARE_GHOSTS[i];
       const m = meshes.current[i];
-      const u = uniformsList[i];
       if (!m) continue;
       if (strength <= 0.01) {
         m.visible = false;
@@ -471,6 +477,7 @@ function LensFlare({ state }: { state: SkyState }) {
       m.visible = true;
       place(m, sunNdc.x * g.k + px * 0.03, sunNdc.y * g.k + py * 0.03, 9.5 + i * 0.03);
       m.quaternion.copy(camera.quaternion);
+      const u = (m.material as THREE.ShaderMaterial).uniforms;
       u.uColor.value.copy(state.sun).lerp(cool, g.tint);
       let op = g.opacity * strength;
       if (g.k === 1 && g.ring === 0) op *= 0.7 + near * 0.7; // core reacts to the cursor
@@ -557,7 +564,8 @@ const EEG_FRAG = /* glsl */ `
     float frame = smoothstep(0.0, 0.06, vUv.x) * smoothstep(1.0, 0.94, vUv.x)
                 * smoothstep(0.0, 0.12, vUv.y) * smoothstep(1.0, 0.88, vUv.y);
     float alpha = glow * frame * uStrength;
-    gl_FragColor = vec4(uColor * (1.0 + glow), alpha);
+    // The trace runs HDR-hot so the Bloom pass gives it a true phosphor glow.
+    gl_FragColor = vec4(uColor * (1.0 + glow * 1.6), alpha);
   }
 `;
 
@@ -576,24 +584,24 @@ function EEGMonitor({ state, calm }: { state: SkyState; calm: boolean }) {
   );
 
   useFrame((_, delta) => {
-    uniforms.uTime.value += Math.min(delta, 0.05) * (calm ? 0.4 : 1);
+    const m = ref.current;
+    if (!m) return;
+    const u = (m.material as THREE.ShaderMaterial).uniforms;
+    u.uTime.value += Math.min(delta, 0.05) * (calm ? 0.4 : 1);
     const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
     // Present across the Science zone only — a bump in the middle of the descent.
     const strength =
       THREE.MathUtils.smoothstep(sp, 0.34, 0.44) *
       (1 - THREE.MathUtils.smoothstep(sp, 0.6, 0.7));
-    uniforms.uStrength.value = strength;
+    u.uStrength.value = strength;
     // The descent slightly tints the monitor without losing its clinical cast.
-    uniforms.uColor.value.copy(clinical).lerp(state.light, 0.15);
+    u.uColor.value.copy(clinical).lerp(state.light, 0.15);
 
-    const m = ref.current;
-    if (m) {
-      m.visible = strength > 0.01;
-      // Float it ahead of and just below the look line, billboarded to camera.
-      dir.set(0, -0.12, 0.5).unproject(camera).sub(camera.position).normalize();
-      m.position.copy(camera.position).addScaledVector(dir, 13);
-      m.quaternion.copy(camera.quaternion);
-    }
+    m.visible = strength > 0.01;
+    // Float it ahead of and just below the look line, billboarded to camera.
+    dir.set(0, -0.12, 0.5).unproject(camera).sub(camera.position).normalize();
+    m.position.copy(camera.position).addScaledVector(dir, 13);
+    m.quaternion.copy(camera.quaternion);
   });
 
   return (
@@ -674,7 +682,8 @@ function Interactions({ state }: { state: SkyState }) {
       m.quaternion.copy(camera.quaternion); // billboard toward camera
       m.scale.setScalar(0.6 + age * 7);
       const mat = m.material as THREE.MeshBasicMaterial;
-      mat.color.copy(state.sun);
+      // HDR-hot so the expanding ring blooms like a shockwave of light.
+      mat.color.copy(state.sun).multiplyScalar(2);
       mat.opacity = (1 - age) * 0.7;
     }
   });
@@ -756,7 +765,10 @@ function SkyScene({ lite }: { lite: boolean }) {
     if (sunRef.current) {
       sunRef.current.position.set(7, state.sunY, -32);
       const mat = sunRef.current.material as THREE.MeshBasicMaterial;
-      mat.color.copy(state.sun);
+      // Push the sun into HDR (>1) so the Bloom luminance threshold catches it
+      // while the clouds (which sit near 1.0) stay below and don't wash out.
+      // Kept modest — at ~3x the halo swallows the whole Heaven sky.
+      mat.color.copy(state.sun).multiplyScalar(0.85 + state.sunIntensity * 0.55);
       sunRef.current.scale.setScalar(2.2 + state.sunIntensity * 1.6);
     }
 
@@ -809,20 +821,22 @@ function SkyScene({ lite }: { lite: boolean }) {
       <directionalLight ref={keyRef} position={[6, 12, 6]} intensity={2.6} color="#fff6e0" />
       <directionalLight position={[-8, -6, -6]} intensity={0.5} color="#bcd9ff" />
 
-      {/* Sun / fire-source — emissive sphere. Wrapped in <Select> so the
-          SelectiveBloom pass turns it (and only it, not the clouds) into a glow. */}
-      <Select enabled>
-        <mesh ref={sunRef} position={[7, 9, -32]}>
-          <sphereGeometry args={[3, 24, 24]} />
-          <meshBasicMaterial color="#fff3d0" toneMapped={false} fog={false} />
-        </mesh>
-      </Select>
+      {/* Sun / fire-source — emissive sphere, pushed past 1.0 in useFrame so
+          the Bloom threshold turns it (and not the clouds) into a glow. */}
+      <mesh ref={sunRef} position={[7, 9, -32]}>
+        <sphereGeometry args={[3, 24, 24]} />
+        <meshBasicMaterial color="#fff3d0" toneMapped={false} fog={false} />
+      </mesh>
 
       <Clouds
         material={THREE.MeshLambertMaterial}
         limit={quality.limit}
         range={quality.limit}
         frustumCulled={false}
+        // Self-hosted copy of drei's cloud sprite — the default is fetched from
+        // a third-party CDN at runtime, and when that request fails the whole
+        // canvas dies to the error boundary. Never ship a CDN dependency here.
+        texture="/textures/cloud.png"
       >
         {clouds.map((cl, i) => (
           <Cloud
@@ -844,17 +858,15 @@ function SkyScene({ lite }: { lite: boolean }) {
         ))}
       </Clouds>
 
-      {/* Thematic set-pieces — all emissive/additive, so they're grouped under
-          <Select> to be the only things the SelectiveBloom pass makes glow.
+      {/* Thematic set-pieces — all emissive/additive, with colours pushed into
+          HDR (>1) so only they cross the Bloom luminance threshold and glow.
           Skipped in lite recovery mode (cheap shader planes/points). */}
-      <Select enabled>
-        {!lite && <LightShaft state={state} calm={calm} />}
-        {!lite && <LavaGlow state={state} calm={calm} />}
-        {!lite && <LensFlare state={state} />}
-        {!lite && <EEGMonitor state={state} calm={calm} />}
-        <Embers count={lite ? 0 : quality.embers} state={state} />
-        <Interactions state={state} />
-      </Select>
+      {!lite && <LightShaft state={state} calm={calm} />}
+      {!lite && <LavaGlow state={state} calm={calm} />}
+      {!lite && <LensFlare state={state} />}
+      {!lite && <EEGMonitor state={state} calm={calm} />}
+      <Embers count={lite ? 0 : quality.embers} state={state} />
+      <Interactions state={state} />
     </>
   );
 }
@@ -904,6 +916,11 @@ export default function SkyCanvas({ lite = false, onContextLost }: SkyCanvasProp
       style={{ background: "transparent" }}
       onCreated={({ gl }) => {
         const canvas = gl.domElement;
+        // onCreated can run more than once against the same canvas (e.g. under
+        // StrictMode's double-mount); never register duplicate listeners or a
+        // single loss gets double-counted against the recovery budget.
+        if (canvas.dataset.lossHandled) return;
+        canvas.dataset.lossHandled = "1";
         canvas.addEventListener(
           "webglcontextlost",
           (e) => {
@@ -918,27 +935,26 @@ export default function SkyCanvas({ lite = false, onContextLost }: SkyCanvasProp
         });
       }}
     >
-      {/* <Selection> wraps BOTH the scene and the composer so the SelectiveBloom
-          pass can see the objects wrapped in <Select> inside SkyScene. */}
-      <Selection>
-        <SkyScene lite={lite} />
+      <SkyScene lite={lite} />
 
-        {effects && (
-          <EffectComposer multisampling={quality.multisampling}>
-            {/* Only the <Select>-wrapped emissives (sun, shafts, flare, lava,
-                EEG, embers, rings) reach this pass — so the clouds no longer
-                bloom. A low threshold lets all of those glow; modest intensity
-                keeps the brightest cores from blowing out. */}
-            <SelectiveBloom
-              intensity={0.9}
-              luminanceThreshold={0.1}
-              luminanceSmoothing={0.2}
-              mipmapBlur
-            />
-            <Vignette eskil={false} offset={0.3} darkness={0.5} />
-          </EffectComposer>
-        )}
-      </Selection>
+      {effects && (
+        <EffectComposer multisampling={quality.multisampling}>
+          {/* Threshold-based selectivity: the composer renders into an HDR
+              (half-float) buffer, and only the emissives pushed past 1.0 (sun,
+              shafts, lava, EEG, embers, rings) cross the luminance threshold —
+              the white clouds sit at ~1.0 and stay below it, so they no longer
+              wash out. (The previous <Selection>/<SelectiveBloom> approach
+              re-created the bloom pass in a render loop and crashed the WebGL
+              context — do not reintroduce it.) */}
+          <Bloom
+            intensity={0.7}
+            luminanceThreshold={1.05}
+            luminanceSmoothing={0.25}
+            mipmapBlur
+          />
+          <Vignette eskil={false} offset={0.3} darkness={0.5} />
+        </EffectComposer>
+      )}
     </Canvas>
   );
 }

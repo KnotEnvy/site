@@ -30,13 +30,13 @@ export default function Purpose() {
 
         <Reveal delay={0.2}>
           <p className="mt-8 max-w-3xl rounded-2xl bg-paper/85 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-ink/85 backdrop-blur sm:text-xl">
-            Our purpose is simple: to show that near-death experiences don&apos;t
-            merely hint at an afterlife — they build a real, evidence-based case
-            for God. Studied across millions of accounts, they{" "}
-            <span className="font-semibold text-ink">factually align</span> with
-            what Scripture has said for thousands of years. And where we spend
-            eternity depends on how we understand and live out the Bible, day to
-            day.
+            Our purpose is simple. Near-death experiences do more than hint at
+            an afterlife; taken together, they build a serious, evidence-based
+            case for God. Millions of accounts{" "}
+            <span className="font-semibold text-ink">independently describe</span>{" "}
+            what Scripture has described for thousands of years, often from
+            people who had never read a word of it. If that is true, then where
+            we spend eternity is the most practical question there is.
           </p>
         </Reveal>
 
@@ -46,10 +46,11 @@ export default function Purpose() {
               What is a near-death experience?
             </h3>
             <p className="font-sans text-base normal-case leading-relaxed tracking-normal text-ink/80">
-              An NDE occurs when a person is clinically dead — heart and brain
-              activity ceased — yet retains vivid, structured consciousness.
-              Millions report strikingly similar realities: leaving the body,
-              meeting a divine presence, and returning forever changed.
+              An NDE occurs when a person is revived from clinical death and
+              returns with vivid, structured memories. Millions describe the
+              same things: leaving the body, watching the room from above,
+              meeting a presence of overwhelming love, and coming back changed
+              for good.
             </p>
           </Reveal>
 
@@ -58,18 +59,18 @@ export default function Purpose() {
               The scientific case for God
             </h3>
             <p className="font-sans text-base normal-case leading-relaxed tracking-normal text-ink/80">
-              It&apos;s easy to dismiss religion as inherited bias. It&apos;s far
-              harder to ignore consistent, eyewitness testimony from thousands of
-              modern people — scientists, atheists, skeptics — who flatlined on an
-              operating table and came back. We bridge medical phenomenon and
-              eternal truth.
+              Dismissing religion as inherited bias is easy. Dismissing
+              thousands of surgeons, scientists, and lifelong skeptics who
+              flatlined on an operating table and came back changed is much
+              harder. Somewhere between the medical data and the testimony, a
+              larger truth takes shape. Our job is to show it to you plainly.
             </p>
           </Reveal>
 
           <Reveal delay={0.2}>
             <Photo
               src={IMG.science[2]}
-              alt="Intensive care — the moment the heart stops"
+              alt="Intensive care, the moment the heart stops"
               overlay
               sizes="(max-width: 1024px) 90vw, 30vw"
               className="aspect-[4/5] w-full rounded-2xl shadow-2xl ring-1 ring-white/20"
@@ -87,18 +88,19 @@ export default function Purpose() {
           </h2>
           <Reveal delay={0.15}>
             <p className="mt-8 rounded-2xl bg-paper/85 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-ink/85 backdrop-blur sm:text-xl">
-              If there&apos;s one topic in the world that stirs more debate than
-              anything else, it&apos;s religion. So set the labels aside. NDEs
-              strip away the baggage of theological tradition and aggressive
-              rhetoric, and deliver something genuinely rare: falsifiable,
-              first-hand evidence — cross-checked and consistent across cultures
-              and centuries.
+              No topic stirs more debate than religion, so set the labels aside
+              for a moment. Near-death experiences carry none of the baggage of
+              tradition or pulpit rhetoric. They are first-hand reports from
+              ordinary people, collected and cross-checked by researchers for
+              decades, and they keep agreeing with each other. That is rare,
+              and it deserves your attention.
             </p>
           </Reveal>
           <Reveal delay={0.25}>
             <p className="mt-4 rounded-2xl bg-paper/85 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-ink/85 backdrop-blur sm:text-xl">
-              We&apos;re not asking you to adopt a religion. We&apos;re asking you
-              to look at the data — and to consider where it points.
+              We&apos;re not asking you to adopt a religion. We&apos;re asking
+              you to look at the evidence and consider, honestly, where it
+              points.
             </p>
           </Reveal>
         </div>

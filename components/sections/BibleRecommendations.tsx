@@ -13,7 +13,7 @@ const BIBLES: Bible[] = [
     rating: 5,
     cover: IMG.bible[3],
     blurb:
-      "Our top pick for going deep. Faithful to the original wording with extensive notes that make hard passages click — the one we reach for most.",
+      "Our top pick for going deep. Faithful to the original wording, with study notes that finally make the hard passages click. This is the one we reach for most.",
   },
   {
     name: "NLT Life Application",
@@ -23,7 +23,7 @@ const BIBLES: Bible[] = [
     rating: 4.5,
     cover: IMG.bible[4],
     blurb:
-      "The easiest to actually live by. Plain, modern English with notes that turn Scripture into daily, practical steps. Perfect for new readers.",
+      "The easiest to actually live by. Plain, modern English with notes that turn Scripture into practical daily steps. Perfect for first-time readers.",
   },
   {
     name: "NIV Thinline",
@@ -33,7 +33,7 @@ const BIBLES: Bible[] = [
     rating: 4,
     cover: IMG.bible[0],
     blurb:
-      "The dependable middle ground — readable yet accurate. Slim enough to carry everywhere, which means you actually open it.",
+      "The dependable middle ground, readable yet accurate. Slim enough to carry everywhere, which means you actually will.",
   },
   {
     name: "CSB Reader’s Bible",
@@ -43,7 +43,7 @@ const BIBLES: Bible[] = [
     rating: 4.5,
     cover: IMG.bible[1],
     blurb:
-      "Stripped of verse numbers and clutter so you read it like the story it is. Beautiful for long, immersive sittings.",
+      "Verse numbers and clutter stripped away, so you can read it like the story it is. Beautiful for long, immersive sittings.",
   },
   {
     name: "KJV Classic",
@@ -53,7 +53,7 @@ const BIBLES: Bible[] = [
     rating: 3.5,
     cover: IMG.bible[2],
     blurb:
-      "The timeless, poetic standard. The language takes effort, but few translations are as memorable or as widely referenced.",
+      "The timeless, poetic standard. The language asks more of you, but no translation is more memorable or more widely quoted.",
   },
 ];
 
@@ -72,9 +72,9 @@ export default function BibleRecommendations() {
             />
           </h2>
           <p className="mt-6 max-w-2xl rounded-2xl bg-ink/55 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-paper/90 backdrop-blur">
-            These are our personal favorites — the translations that genuinely
-            helped us understand Scripture and apply it to everyday life. Swipe
-            through, and find the one that fits you.
+            These are our personal favorites, the translations that genuinely
+            helped us understand Scripture and live it out. Swipe through and
+            find the one that fits you.
           </p>
         </Reveal>
       </div>

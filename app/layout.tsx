@@ -22,11 +22,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Heaven or Hell — Real? | Evidence of Life After Death",
+  title: "Heaven or Hell. Real? | Evidence of Life After Death",
   description:
-    "Near-death experiences as factual, bias-free evidence of the afterlife — and how they support the Bible. No biases. No opinions. Rooted in reality.",
+    "Millions of near-death experiences point to the same conclusion: God is real, and death is not the end. Watch the testimony, weigh the science, and decide for yourself.",
   openGraph: {
-    title: "Heaven or Hell — Real?",
+    title: "Heaven or Hell. Real?",
     description:
       "Evidence of life after death, scientifically examined through near-death experiences.",
     type: "website",
