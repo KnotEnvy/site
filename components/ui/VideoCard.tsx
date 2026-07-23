@@ -10,6 +10,8 @@ export type Video = {
   img: string;
   /** Real YouTube video/playlist URL; opens in the lightbox. */
   href?: string;
+  /** Small chip over the thumbnail, e.g. "Start here" on a playlist's intro video. */
+  badge?: string;
 };
 
 export default function VideoCard({
@@ -44,6 +46,11 @@ export default function VideoCard({
         {video.duration && (
           <span className="absolute bottom-2 right-2 rounded bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white">
             {video.duration}
+          </span>
+        )}
+        {video.badge && (
+          <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-ink shadow-md">
+            {video.badge}
           </span>
         )}
       </div>

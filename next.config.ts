@@ -5,6 +5,13 @@ const nextConfig: NextConfig = {
   // machines) without Next blocking cross-origin dev resources.
   allowedDevOrigins: ["172.19.224.1", "localhost", "127.0.0.1"],
 
+  images: {
+    // Video cards use the real YouTube thumbnails for the real videos.
+    remotePatterns: [
+      { protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" },
+    ],
+  },
+
   // StrictMode's dev-only mount→cleanup→remount cycle makes react-three-fiber
   // schedule a delayed forceContextLoss() against the live canvas, killing the
   // WebGL context ~500ms after startup on EVERY machine (it was never a flaky

@@ -1,6 +1,7 @@
 import { Reveal } from "@/components/ui/Reveal";
 import SplitText from "@/components/ui/SplitText";
 import Photo from "@/components/ui/Photo";
+import EvidenceStats from "@/components/ui/EvidenceStats";
 import { IMG } from "@/lib/media";
 
 /**
@@ -77,6 +78,9 @@ export default function Purpose() {
             />
           </Reveal>
         </div>
+
+        {/* The evidence, at a glance: counters tick up as they scroll into view */}
+        <EvidenceStats className="mt-24" />
 
         {/* "This Source" — now reads over the living sky, no competing gradient */}
         <div className="mt-28 max-w-3xl">

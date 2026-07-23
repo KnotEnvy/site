@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useLenis } from "lenis/react";
 import Photo from "@/components/ui/Photo";
@@ -44,22 +44,46 @@ export default function VideoModal({
   onClose: () => void;
 }) {
   const lenis = useLenis();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const open = !!video;
 
-  // While open: pause smooth-scroll, lock the body, and close on Escape.
+  // While open: pause smooth-scroll, lock the body, close on Escape, and trap
+  // Tab inside the dialog (focus returns to the opener card on close).
   useEffect(() => {
     if (!open) return;
     lenis?.stop();
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialogRef.current
+      ?.querySelector<HTMLElement>("button, a[href], iframe")
+      ?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
+      if (e.key === "Tab") {
+        const items = dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button, a[href], iframe, [tabindex]:not([tabindex="-1"])'
+        );
+        if (!items?.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        const active = document.activeElement;
+        const inside = dialogRef.current?.contains(active) ?? false;
+        if (e.shiftKey && (active === first || !inside)) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && (active === last || !inside)) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => {
       lenis?.start();
       document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", onKey);
+      opener?.focus();
     };
   }, [open, lenis, onClose]);
 
@@ -85,6 +109,7 @@ export default function VideoModal({
 
           {/* Dialog */}
           <motion.div
+            ref={dialogRef}
             className="relative w-full max-w-3xl overflow-hidden rounded-2xl bg-ink shadow-2xl ring-1 ring-white/10"
             initial={{ scale: 0.92, y: 24, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
@@ -133,9 +158,11 @@ export default function VideoModal({
 
             <div className="flex items-start justify-between gap-4 p-5">
               <div>
-                <h3 className="font-sans text-lg font-semibold leading-snug text-white">
+                {/* Not a heading: the global h1-h3 rule is unlayered CSS, so it
+                    beats Tailwind utilities and forces Anton + uppercase. */}
+                <p className="font-sans text-lg font-semibold leading-snug text-white">
                   {video.title}
-                </h3>
+                </p>
                 {video.duration && (
                   <p className="mt-1 text-sm text-white/55">{video.duration}</p>
                 )}
