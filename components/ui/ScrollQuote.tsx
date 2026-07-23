@@ -75,7 +75,11 @@ export default function ScrollQuote({
       ref={ref}
       className={clsx("mx-auto max-w-5xl px-6 py-20 text-center sm:py-28", className)}
     >
-      <motion.div style={reduced ? undefined : { y }}>
+      {/* Parallax only after hydration: the server cannot know the visitor's
+          reduced-motion setting, so SSR-ing the transform hydration-mismatches
+          (and sticks, permanently offsetting the quote) on reduced-motion
+          devices. Until hydration the block simply sits at rest. */}
+      <motion.div style={hydrated && !reduced ? { y } : undefined}>
         {kicker && (
           <p className={clsx("text-xs font-bold uppercase tracking-[0.26em]", accent)}>
             {kicker}
