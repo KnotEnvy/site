@@ -1,0 +1,14 @@
+# Netlify deploy config. The Next.js runtime (@netlify/plugin-nextjs) is
+# auto-detected for Next projects; no plugin block needed.
+#
+# Netlify injects the URL env var at build time, which lib/site.ts uses as
+# metadataBase — canonical/OG URLs follow the primary domain automatically.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# next/image remote thumbnails are served through the Netlify Image CDN,
+# which requires an explicit allowlist of remote sources.
+[images]
+  remote_images = ["https://i.ytimg.com/vi/.*"]

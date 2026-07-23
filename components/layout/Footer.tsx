@@ -21,7 +21,6 @@ export default function Footer() {
         <p className="mt-4 text-xs text-paper/40">
           Photography from Wikimedia Commons (Creative Commons / public domain);
           full attribution in <code>/public/images/credits.json</code>.
-          Placeholder imagery; swap for original art before launch.
         </p>
       </div>
     </footer>
