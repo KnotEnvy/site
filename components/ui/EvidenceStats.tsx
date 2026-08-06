@@ -7,9 +7,9 @@ import { clsx } from "@/lib/clsx";
 
 const STATS: { value: number; suffix?: string; label: string }[] = [
   { value: 4000, suffix: "+", label: "documented cases behind the research in these vaults" },
-  { value: 41, label: "first-hand testimonies, curated into three playlists" },
+  { value: 41, label: "first-hand testimonies across the three NDE vaults" },
   { value: 50, label: "years of clinical study since doctors first wrote it down" },
-  { value: 1, label: "appointment nobody cancels" },
+  { value: 1, label: "unavoidable appointment we will all keep" },
 ];
 
 /**

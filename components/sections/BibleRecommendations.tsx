@@ -5,6 +5,21 @@ import BibleCard, { type Bible } from "@/components/ui/BibleCard";
 import { IMG } from "@/lib/media";
 
 const BIBLES: Bible[] = [
+  // Placed first on purpose: it costs nothing, so nobody is blocked from
+  // starting. Replaces the KJV Classic card per stakeholder feedback.
+  {
+    name: "Bible.com App",
+    style: "Any translation",
+    publisher: "YouVersion",
+    price: "Free",
+    rating: 5,
+    cover: IMG.bible[2],
+    badge: "Free",
+    href: "https://www.bible.com/",
+    hrefLabel: "Read free at Bible.com",
+    blurb:
+      "Start here if you own nothing yet. The whole Bible, free, on any phone or browser, with audio if you would rather listen and short reading plans if you do not know where to begin. Over a billion installs.",
+  },
   {
     name: "ESV Study Bible",
     style: "Word-for-word",
@@ -45,16 +60,6 @@ const BIBLES: Bible[] = [
     blurb:
       "Verse numbers and clutter stripped away, so you can read it like the story it is. Beautiful for long, immersive sittings.",
   },
-  {
-    name: "KJV Classic",
-    style: "Word-for-word (formal)",
-    publisher: "Various",
-    price: "$15–30",
-    rating: 3.5,
-    cover: IMG.bible[2],
-    blurb:
-      "The timeless, poetic standard. The language asks more of you, but no translation is more memorable or more widely quoted.",
-  },
 ];
 
 export default function BibleRecommendations() {
@@ -72,9 +77,10 @@ export default function BibleRecommendations() {
             />
           </h2>
           <p className="mt-6 max-w-2xl rounded-2xl bg-ink/55 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-paper/90 backdrop-blur">
-            These are our personal favorites, the translations that genuinely
-            helped us understand Scripture and live it out. Swipe through and
-            find the one that fits you.
+            You do not have to buy anything to start: the first card is the free
+            Bible app, complete and readable today. The rest are our personal
+            favorites in print, the translations that genuinely helped us
+            understand Scripture and live it out.
           </p>
         </Reveal>
       </div>

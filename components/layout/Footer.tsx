@@ -13,7 +13,7 @@ export default function Footer() {
         </p>
 
         <div className="mt-12 flex flex-col justify-between gap-4 border-t border-paper/15 pt-6 text-sm text-paper/60 sm:flex-row">
-          <span>© {new Date().getFullYear()} Heaven or Hell?</span>
+          <span>© {new Date().getFullYear()} Eternal Truth</span>
           <span className="font-medium">
             No biases · No opinions · Rooted in reality
           </span>

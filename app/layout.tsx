@@ -28,6 +28,7 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
   keywords: [
+    "eternal truth",
     "near-death experience",
     "NDE",
     "life after death",
@@ -38,7 +39,9 @@ export const metadata: Metadata = {
     "consciousness after death",
   ],
   openGraph: {
-    title: SITE_NAME,
+    // The brand name alone is too vague on a share card — it carries the hook
+    // as well, which is also what the captured og.jpg actually shows.
+    title: `${SITE_NAME} — Heaven or Hell. Real?`,
     description:
       "Evidence of life after death, scientifically examined through near-death experiences.",
     url: "/",
@@ -50,13 +53,13 @@ export const metadata: Metadata = {
         url: "/og.jpg",
         width: 1200,
         height: 630,
-        alt: "Heaven or Hell. Real? A headline over sunlit clouds at the start of the descent.",
+        alt: "Eternal Truth: the headline 'Heaven or Hell. Real?' over sunlit clouds at the start of the descent.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_NAME,
+    title: `${SITE_NAME} — Heaven or Hell. Real?`,
     description:
       "Evidence of life after death, scientifically examined through near-death experiences.",
     images: ["/og.jpg"],

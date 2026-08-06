@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Page not found | Heaven or Hell. Real?",
+  title: `Page not found | ${SITE_NAME}`,
   robots: { index: false, follow: true },
 };
 

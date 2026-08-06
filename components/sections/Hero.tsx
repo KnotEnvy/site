@@ -14,7 +14,7 @@ const INTRO = [
   },
   {
     title: "Why it matters to everyone",
-    body: "Death is the one appointment nobody cancels. Whatever you believe about what comes next, you will find out, and so will everyone you love. That makes this worth an honest look now, while the question is still yours to ask.",
+    body: "Death is the one unavoidable appointment we will all keep. Whatever you believe about what comes next, you will find out, and so will everyone you love. That makes this worth an honest look now, while the question is still yours to ask.",
   },
   {
     title: "A scientific case for God",

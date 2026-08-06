@@ -41,7 +41,7 @@ export default function Header() {
           onClick={go("#top")}
           className="font-display text-base tracking-tight text-ink sm:text-lg"
         >
-          Heaven<span className="text-blaze">or</span>Hell?
+          Eternal&nbsp;<span className="text-blaze">Truth</span>
         </a>
 
         <div className="flex flex-1 justify-end">

@@ -17,6 +17,9 @@
   --color-heaven: #3b82f6;
   --color-science: #9810e0;
   --color-hell: #e0461f;
+  /* Vault 04 (evidence for Scripture) — warm gold, readable against the
+     near-black end of the descent where that section sits. */
+  --color-scripture: #e8a72c;
 
   /* Type families (wired by next/font in layout.tsx) */
   --font-display: var(--font-anton), "Arial Narrow", sans-serif;

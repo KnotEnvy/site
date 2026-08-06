@@ -32,7 +32,7 @@ await page.waitForTimeout(3000);
 // Stats band mid-viewport, wait for count-up to finish.
 await page.evaluate(() => {
   document.querySelectorAll("#purpose p").forEach((p) => {
-    if (p.textContent?.includes("appointment nobody cancels")) {
+    if (p.textContent?.includes("unavoidable appointment")) {
       p.scrollIntoView({ block: "center", behavior: "instant" });
     }
   });
@@ -55,12 +55,27 @@ const font = await page.evaluate(() => {
 console.log(`modal title font-family: ${font}`);
 await page.screenshot({ path: path.join(OUT, "modal.png") });
 
-// Focus trap: Tab three times, focus must stay inside the dialog.
-for (let i = 0; i < 3; i++) await page.keyboard.press("Tab");
-const trapped = await page.evaluate(() => {
-  const dialog = document.querySelector('[role="dialog"]');
-  return dialog?.contains(document.activeElement) ?? false;
-});
-console.log(`focus trapped in dialog after 3 Tabs: ${trapped}`);
+// Focus trap: Tab repeatedly, focus must stay inside the dialog after each one.
+// Give each keypress time to settle — focus moving into the cross-origin YouTube
+// iframe is async, and asserting immediately reports a false negative. Once
+// focus is on that iframe, further Tabs go to the player's own controls and the
+// top-level activeElement stays the <iframe>, which is still inside the dialog.
+let trapped = true;
+let where = "";
+for (let i = 0; i < 4; i++) {
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(300);
+  const state = await page.evaluate(() => {
+    const dialog = document.querySelector('[role="dialog"]');
+    const a = document.activeElement;
+    return {
+      inside: dialog?.contains(a) ?? false,
+      tag: a?.tagName ?? "null",
+    };
+  });
+  if (!state.inside) trapped = false;
+  where += `${i + 1}:${state.tag}${state.inside ? "" : "(ESCAPED)"} `;
+}
+console.log(`focus trapped in dialog across 4 Tabs: ${trapped}  [${where.trim()}]`);
 
 await browser.close();
