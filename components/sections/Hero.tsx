@@ -1,11 +1,12 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { Reveal, StaggerGroup, StaggerItem } from "@/components/ui/Reveal";
 import HorizontalScroller from "@/components/ui/HorizontalScroller";
 import Photo from "@/components/ui/Photo";
 import { IMG } from "@/lib/media";
+import { useHydrated } from "@/lib/useHydrated";
 
 const INTRO = [
   {
@@ -30,15 +31,23 @@ export default function Hero() {
   });
   const y = useTransform(scrollYProgress, [0, 1], [0, -140]);
   const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const hydrated = useHydrated();
+  const reduced = useReducedMotion();
 
   return (
     <section
       id="top"
       ref={ref}
-      className="relative flex min-h-[100svh] flex-col justify-center px-4 pb-24 pt-28 sm:px-6"
+      className="relative flex min-h-[100svh] flex-col justify-center overflow-x-clip px-4 pb-24 pt-28 sm:px-6"
     >
+      {/* MotionConfig reducedMotion="user" suppresses ANIMATIONS, not a scroll
+          linked MotionValue written straight to style - without this guard the
+          whole hero physically slid 140px and faded out for exactly the
+          visitors who asked for less motion. Gated on `hydrated` too, because
+          the server cannot know the preference and a mismatched transform
+          sticks (see ScrollQuote for the same pattern). */}
       <motion.div
-        style={{ y, opacity }}
+        style={hydrated && !reduced ? { y, opacity } : undefined}
         className="mx-auto grid w-full max-w-7xl gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center"
       >
         {/* Headline */}
@@ -61,7 +70,7 @@ export default function Hero() {
             </h1>
           </StaggerGroup>
 
-          <Reveal delay={0.5} className="mt-8 max-w-xl">
+          <Reveal delay={0.5} from="left" exit="left" className="mt-8 max-w-xl">
             <p className="rounded-2xl bg-paper/85 p-5 font-sans text-base normal-case leading-relaxed tracking-normal text-ink/80 backdrop-blur sm:text-lg">
               Millions of people have died, been revived, and returned
               describing the same journey. Their accounts line up across
@@ -77,7 +86,7 @@ export default function Hero() {
         </div>
 
         {/* Image collage */}
-        <Reveal delay={0.3} className="relative hidden h-[60vh] max-h-[520px] lg:block">
+        <Reveal delay={0.3} from="right" exit="right" className="relative hidden h-[60vh] max-h-[520px] lg:block">
           <Photo
             src={IMG.bible[0]}
             alt="Open Bible scripture"
@@ -104,7 +113,7 @@ export default function Hero() {
 
       {/* Horizontal swipe: intro panels (swipe before scrolling on, per the brief) */}
       <div className="mx-auto mt-16 w-full max-w-7xl">
-        <Reveal>
+        <Reveal from="in" exit="in">
           <HorizontalScroller label="Introduction panels">
             {INTRO.map((card) => (
               <article

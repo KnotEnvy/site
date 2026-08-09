@@ -53,7 +53,7 @@ export default function EvidenceStats({ className }: { className?: string }) {
       )}
     >
       {STATS.map((stat, i) => (
-        <Reveal key={stat.label} delay={i * 0.08}>
+        <Reveal key={stat.label} delay={i * 0.08} from={i % 2 === 0 ? "down" : "up"}>
           <div className="text-center">
             <p className="font-display text-6xl text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.45)] sm:text-7xl">
               <CountUp value={stat.value} suffix={stat.suffix} />

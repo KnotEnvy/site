@@ -223,6 +223,241 @@ function Embers({ count, state }: { count: number; state: SkyState }) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Cloud rush — the near-field layer you actually fly INTO. A slab of soft     */
+/*  billboards that streams toward the lens as you scroll: puffs rise out of    */
+/*  the far haze, swell, and dissolve just before they reach the camera, so     */
+/*  the descent reads as falling THROUGH weather instead of past a backdrop.    */
+/*                                                                              */
+/*  The drei <Clouds> field above is volumetric and world-anchored — great for  */
+/*  mid-distance body, far too expensive to thicken into a foreground. This is  */
+/*  ONE InstancedBufferGeometry in ONE draw call with zero per-instance CPU     */
+/*  work: the whole march lives in the vertex shader behind a single uTravel.   */
+/*                                                                              */
+/*  Kept deliberately under the Bloom luminance threshold (1.05) so, like the   */
+/*  white cloud field, these never wash the scene out — only emissives glow.    */
+/* -------------------------------------------------------------------------- */
+
+/** Depth of the wrapping slab, in world units ahead of the lens. */
+const RUSH_DEPTH = 38;
+/** How far the field marches over one full page scroll (~20 slab lengths).
+ *  This is THE dial for how hard the sky rushes: raise it and scrolling rips
+ *  the clouds past you, lower it and the descent turns stately. */
+const RUSH_TRAVEL = RUSH_DEPTH * 20;
+/** Gentle autonomous drift so the sky still moves while the page sits still. */
+const RUSH_IDLE = 2.4;
+
+const RUSH_VERT = /* glsl */ `
+  attribute vec3 aOffset;   // xy = lateral placement, z = phase within the slab
+  attribute vec4 aParams;   // x = scale, y = seed, z = opacity, w = spin
+  uniform float uTravel;
+  uniform float uDepth;
+  uniform float uTime;
+  uniform vec2 uNearFade;   // (gone, fully present) distance from the lens
+  varying vec2 vUv;
+  varying float vFade;
+  varying float vShade;
+
+  void main() {
+    vUv = uv;
+    float scale = aParams.x;
+
+    // March toward the lens, wrapping through the slab: -uDepth (far) .. 0 (eye).
+    float z = mod(aOffset.z + uTravel, uDepth);
+    vec4 mv = modelViewMatrix * vec4(aOffset.xy, z - uDepth, 1.0);
+    float dist = max(-mv.z, 0.0);
+
+    // Billboard in VIEW space — always square to the lens, no matrix churn.
+    float a = uTime * aParams.w + aParams.y * 6.2831;
+    float cs = cos(a);
+    float sn = sin(a);
+    vec2 corner = vec2(
+      position.x * cs - position.y * sn,
+      position.x * sn + position.y * cs
+    ) * scale;
+    mv.xy += corner;
+
+    gl_Position = projectionMatrix * mv;
+
+    // Rise out of the far haze; dissolve before clipping through the camera.
+    // Written as 1.0 - smoothstep(lo, hi, x) rather than smoothstep(hi, lo, x):
+    // GLSL ES leaves smoothstep undefined when edge0 >= edge1, and every driver
+    // happening to do the right thing is not a guarantee.
+    float far = 1.0 - smoothstep(uDepth * 0.62, uDepth, dist);
+    float near = smoothstep(uNearFade.x, uNearFade.y, dist);
+    vFade = far * near * aParams.z;
+
+    // View-space vertical gradient: tops catch the key light, undersides sit
+    // in shadow. Read off the ROTATED corner so shading ignores the spin.
+    vShade = clamp(0.5 + corner.y / (2.0 * scale), 0.0, 1.0);
+  }
+`;
+
+const RUSH_FRAG = /* glsl */ `
+  uniform sampler2D uMap;
+  uniform vec3 uLit;
+  uniform vec3 uShade;
+  uniform float uOpacity;
+  varying vec2 vUv;
+  varying float vFade;
+  varying float vShade;
+
+  void main() {
+    float a = texture2D(uMap, vUv).a;
+    // Most of a cloud sprite is empty — skip the blend entirely out there.
+    if (a < 0.01) discard;
+    // Harden the falloff: the raw sprite is a soft radial blob, and dozens of
+    // them overlapped average into flat haze. The power curve restores an edge.
+    a = pow(a, 1.7);
+    vec3 col = mix(uShade, uLit, smoothstep(0.04, 0.98, vShade));
+    gl_FragColor = vec4(col, a * vFade * uOpacity);
+  }
+`;
+
+function CloudRush({
+  count,
+  state,
+  calm,
+}: {
+  count: number;
+  state: SkyState;
+  calm: boolean;
+}) {
+  const ref = useRef<THREE.Mesh>(null);
+  const { camera } = useThree();
+  const drift = useRef(0);
+  const slabQ = useRef(new THREE.Quaternion());
+  const synced = useRef(false);
+
+  const white = useMemo(() => new THREE.Color("#ffffff"), []);
+  const ashShade = useMemo(() => new THREE.Color("#150708"), []);
+
+  const texture = useMemo(() => {
+    // Self-hosted sprite — never add a runtime CDN dependency to the canvas.
+    const t = new THREE.TextureLoader().load("/textures/cloud.png");
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, []);
+  useEffect(() => () => texture.dispose(), [texture]);
+
+  const geometry = useMemo(() => {
+    const g = new THREE.InstancedBufferGeometry();
+    // Borrow a unit quad's buffers. Do NOT dispose the source geometry: it
+    // shares the very attribute objects the renderer keys its GPU buffers on.
+    const quad = new THREE.PlaneGeometry(1, 1);
+    g.setIndex(quad.getIndex());
+    g.setAttribute("position", quad.getAttribute("position"));
+    g.setAttribute("uv", quad.getAttribute("uv"));
+
+    const offset = new Float32Array(count * 3);
+    const params = new Float32Array(count * 4);
+    for (let i = 0; i < count; i++) {
+      offset[i * 3] = (hash(i + 3.1) * 2 - 1) * 20;
+      offset[i * 3 + 1] = (hash(i + 11.7) * 2 - 1) * 13;
+      // Evenly phased through the slab so puffs arrive in a steady stream
+      // rather than clumping into visible waves.
+      offset[i * 3 + 2] = (i / Math.max(count, 1)) * RUSH_DEPTH;
+      params[i * 4] = 4 + hash(i + 23.3) * 18; // scale
+      params[i * 4 + 1] = hash(i + 37.9); // seed
+      params[i * 4 + 2] = 0.34 + hash(i + 53.5) * 0.42; // per-puff opacity
+      params[i * 4 + 3] = (hash(i + 67.1) * 2 - 1) * 0.06; // spin
+    }
+    g.setAttribute("aOffset", new THREE.InstancedBufferAttribute(offset, 3));
+    g.setAttribute("aParams", new THREE.InstancedBufferAttribute(params, 4));
+    g.instanceCount = count;
+    return g;
+  }, [count]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  const uniforms = useMemo(
+    () => ({
+      uMap: { value: texture },
+      uTravel: { value: 0 },
+      uDepth: { value: RUSH_DEPTH },
+      uTime: { value: 0 },
+      uNearFade: { value: new THREE.Vector2(0.6, 4) },
+      uLit: { value: new THREE.Color() },
+      uShade: { value: new THREE.Color() },
+      uOpacity: { value: 0 },
+    }),
+    [texture]
+  );
+
+  useFrame((_, delta) => {
+    const m = ref.current;
+    if (!m) return;
+    const d = Math.min(delta, 0.05);
+    const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
+    const u = (m.material as THREE.ShaderMaterial).uniforms;
+
+    // Scroll pulls the field past you. Under reduced motion the approach is
+    // halved and the idle drift stops — the rush toward the eye is what
+    // carries vestibular risk. Density and colour are NOT reduced: the calm
+    // path is what reduced-motion visitors actually see, so it has to be the
+    // same view, just a slower one.
+    u.uTime.value += d * (calm ? 0.12 : 1);
+    drift.current += d * RUSH_IDLE * (calm ? 0 : 1);
+    u.uTravel.value = sp * RUSH_TRAVEL * (calm ? 0.5 : 1) + drift.current;
+    u.uNearFade.value.set(calm ? 4.5 : 0.3, calm ? 12 : 2.6);
+
+    // Presence: dense cumulus at the top (you enter the sky), thinned to almost
+    // nothing through the middle so the set-pieces read, then back as ash and
+    // smoke near Hell — lighter there than in Heaven, so the fire still burns
+    // through rather than being curtained off.
+    const heaven = 1 - THREE.MathUtils.smoothstep(sp, 0.03, 0.4);
+    const hell = THREE.MathUtils.smoothstep(sp, 0.58, 0.92);
+    const presence = 0.06 + 0.8 * Math.max(heaven, hell * 0.85);
+    u.uOpacity.value = presence;
+
+    // Tint: white cumulus -> dusk violet -> dark ash lit by the fire below.
+    // Every term stays under 1.05 so these never cross the Bloom threshold.
+    const ash = THREE.MathUtils.smoothstep(sp, 0.5, 0.95);
+    u.uLit.value
+      .copy(white)
+      .lerp(state.light, 0.4)
+      .lerp(state.ground, ash * 0.9)
+      .multiplyScalar(1 - ash * 0.55);
+    // Shadowed undersides take the HORIZON's own colour rather than a fixed
+    // blue-grey: a neutral grey averaged over the ember sky desaturated the
+    // whole of Hell, which is exactly the drama this descent is built on.
+    u.uShade.value
+      .copy(state.horizon)
+      .multiplyScalar(0.45)
+      .lerp(ashShade, ash * 0.8);
+
+    // `.image` lands only once the sprite has decoded; without this the first
+    // frames would flash untextured white quads across the whole viewport.
+    m.visible = presence > 0.01 && !!texture.image;
+
+    // Anchor the slab to the camera, but let its orientation LAG behind: a
+    // rigid lock paints the clouds onto the lens with no parallax when the rig
+    // banks, and the whole point is that you feel yourself moving through them.
+    if (!synced.current) {
+      slabQ.current.copy(camera.quaternion);
+      synced.current = true;
+    }
+    slabQ.current.slerp(camera.quaternion, 1 - Math.exp(-2.5 * d));
+    m.position.copy(camera.position);
+    m.quaternion.copy(slabQ.current);
+  });
+
+  if (count === 0) return null;
+
+  return (
+    <mesh ref={ref} renderOrder={1} visible={false} frustumCulled={false}>
+      <primitive object={geometry} attach="geometry" />
+      <shaderMaterial
+        uniforms={uniforms}
+        vertexShader={RUSH_VERT}
+        fragmentShader={RUSH_FRAG}
+        transparent
+        depthWrite={false}
+        fog={false}
+      />
+    </mesh>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Tunnel of Light — the canonical NDE motif. Radial god-ray shafts stream     */
 /*  from the sun, brightest at the very top of the descent (the "move toward    */
 /*  the light" threshold) and gone by the first third. Anchored far away at the */
@@ -748,6 +983,17 @@ function SkyScene({ lite }: { lite: boolean }) {
     [lite, quality.tier]
   );
 
+  // Near-field puff budget. Its own count rather than a slice of `quality.limit`
+  // — that budget is drei's SHARED instancer allocation for <Clouds>, and
+  // borrowing from it would quietly starve the volumetric field. Big billboards
+  // close to the lens are fill-rate bound, so low-end devices get a thin veil
+  // and a recovered (lite) context gets none at all.
+  const rushCount = useMemo(() => {
+    if (lite) return 0;
+    if (quality.tier === "low") return 12;
+    return quality.tier === "mid" ? 38 : 64;
+  }, [lite, quality.tier]);
+
   useFrame((st, delta) => {
     const d = Math.min(delta, 0.05);
     const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
@@ -857,6 +1103,12 @@ function SkyScene({ lite }: { lite: boolean }) {
           />
         ))}
       </Clouds>
+
+      {/* The near-field layer the camera flies INTO — streams toward the lens
+          with scroll. Drawn after the world (renderOrder 1) so it occludes the
+          god-rays into real shafts, and before the additive set-pieces so fire
+          and flare still read through it. */}
+      <CloudRush count={rushCount} state={state} calm={calm} />
 
       {/* Thematic set-pieces — all emissive/additive, with colours pushed into
           HDR (>1) so only they cross the Bloom luminance threshold and glow.

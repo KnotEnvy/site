@@ -64,9 +64,9 @@ const BIBLES: Bible[] = [
 
 export default function BibleRecommendations() {
   return (
-    <section id="bibles" className="relative z-10 py-28 sm:py-36">
+    <section id="bibles" className="relative z-10 overflow-x-clip py-28 sm:py-36">
       <div className="mx-auto mb-12 max-w-7xl px-6">
-        <Reveal>
+        <Reveal from="down">
           <p className="text-sm font-bold uppercase tracking-[0.24em] text-white/80 drop-shadow">
             Where to start reading
           </p>
@@ -85,7 +85,7 @@ export default function BibleRecommendations() {
         </Reveal>
       </div>
 
-      <Reveal>
+      <Reveal from="in" exit="in">
         <HorizontalScroller label="Recommended Bible translations" className="mx-auto max-w-7xl">
           {BIBLES.map((b) => (
             <BibleCard key={b.name} bible={b} />

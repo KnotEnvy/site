@@ -190,9 +190,9 @@ export default function Playlists() {
   const [active, setActive] = useState<Video | null>(null);
 
   return (
-    <section id="playlists" className="relative z-10 py-28 sm:py-36">
+    <section id="playlists" className="relative z-10 overflow-x-clip py-28 sm:py-36">
       <div className="mx-auto max-w-7xl px-4 text-center sm:px-6">
-        <Reveal>
+        <Reveal from="down">
           <p className="text-sm font-bold uppercase tracking-[0.24em] text-white/90">
             Watch &amp; decide for yourself
           </p>
@@ -206,7 +206,7 @@ export default function Playlists() {
       </div>
 
       <div className="mt-4 space-y-12 sm:space-y-16">
-        {CATEGORIES.map((cat) => (
+        {CATEGORIES.map((cat, i) => (
           <div key={cat.id}>
             <ScrollQuote
               kicker={cat.meaning.kicker}
@@ -216,7 +216,10 @@ export default function Playlists() {
             />
 
             <div className="mx-auto mb-6 max-w-7xl px-6">
-              <Reveal>
+              <Reveal
+                from={i % 2 === 0 ? "tilt-left" : "tilt-right"}
+                exit={i % 2 === 0 ? "left" : "right"}
+              >
                 <div className="max-w-2xl rounded-2xl bg-paper/85 p-6 shadow-xl ring-1 ring-black/5 backdrop-blur">
                   <span className={clsx("text-xs font-bold uppercase tracking-[0.22em]", cat.accent)}>
                     {cat.kicker}
@@ -250,7 +253,10 @@ export default function Playlists() {
               </Reveal>
             </div>
 
-            <Reveal>
+            <Reveal
+              from={i % 2 === 0 ? "right" : "left"}
+              exit={i % 2 === 0 ? "right" : "left"}
+            >
               <HorizontalScroller label={`${cat.title} videos`} className="mx-auto max-w-7xl">
                 {cat.videos.map((v) => (
                   <VideoCard key={v.title} video={v} onOpen={setActive} />

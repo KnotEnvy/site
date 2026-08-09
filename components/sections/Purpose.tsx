@@ -11,7 +11,7 @@ import { IMG } from "@/lib/media";
  */
 export default function Purpose() {
   return (
-    <section id="purpose" className="relative z-10">
+    <section id="purpose" className="relative z-10 overflow-x-clip">
       <div className="mx-auto max-w-7xl px-4 py-28 sm:px-6 sm:py-36">
         <h2 className="display-lg">
           <span className="block">
@@ -29,7 +29,7 @@ export default function Purpose() {
           </span>
         </h2>
 
-        <Reveal delay={0.2}>
+        <Reveal delay={0.2} from="left" exit="left">
           <p className="mt-8 max-w-3xl rounded-2xl bg-paper/85 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-ink/85 backdrop-blur sm:text-xl">
             Our purpose is simple. Near-death experiences do more than hint at
             an afterlife; taken together, they build a serious, evidence-based
@@ -42,7 +42,7 @@ export default function Purpose() {
         </Reveal>
 
         <div className="mt-16 grid gap-6 lg:grid-cols-[1fr_1fr_0.9fr] lg:items-start">
-          <Reveal className="space-y-3 rounded-2xl bg-paper/85 p-6 backdrop-blur">
+          <Reveal from="left" exit="left" className="space-y-3 rounded-2xl bg-paper/85 p-6 backdrop-blur">
             <h3 className="font-display text-2xl text-blaze">
               What is a near-death experience?
             </h3>
@@ -55,7 +55,7 @@ export default function Purpose() {
             </p>
           </Reveal>
 
-          <Reveal delay={0.1} className="space-y-3 rounded-2xl bg-paper/85 p-6 backdrop-blur">
+          <Reveal delay={0.1} from="right" exit="right" className="space-y-3 rounded-2xl bg-paper/85 p-6 backdrop-blur">
             <h3 className="font-display text-2xl text-blaze">
               The scientific case for God
             </h3>
@@ -68,7 +68,7 @@ export default function Purpose() {
             </p>
           </Reveal>
 
-          <Reveal delay={0.2}>
+          <Reveal delay={0.2} from="in" exit="in">
             <Photo
               src={IMG.science[2]}
               alt="Intensive care, the moment the heart stops"
@@ -90,7 +90,7 @@ export default function Purpose() {
               className="text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.45)]"
             />
           </h2>
-          <Reveal delay={0.15}>
+          <Reveal delay={0.15} from="left" exit="left">
             <p className="mt-8 rounded-2xl bg-paper/85 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-ink/85 backdrop-blur sm:text-xl">
               No topic stirs more debate than religion, so set the labels aside
               for a moment. Near-death experiences carry none of the baggage of
@@ -100,7 +100,7 @@ export default function Purpose() {
               and it deserves your attention.
             </p>
           </Reveal>
-          <Reveal delay={0.25}>
+          <Reveal delay={0.25} from="right" exit="right">
             <p className="mt-4 rounded-2xl bg-paper/85 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-ink/85 backdrop-blur sm:text-xl">
               We&apos;re not asking you to adopt a religion. We&apos;re asking
               you to look at the evidence and consider, honestly, where it

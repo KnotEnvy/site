@@ -115,27 +115,125 @@ h3 {
    adds `reveal-ready`. Guarantees content is never stuck invisible if JS fails.
 ---------------------------------------------------------------------------- */
 html.reveal-ready .reveal {
+  --rx: 0px;
+  --ry: 28px;
+  --rs: 1;
+  --rr: 0deg;
   opacity: 0;
-  transform: translateY(28px);
+  transform: translate3d(var(--rx), var(--ry), 0) scale(var(--rs)) rotate(var(--rr));
   transition:
     opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
+
+/* Directional entrances. Same specificity as the base rule (0,2,1), so source
+   order decides - keep these BELOW it. NOTE the wipe rule further down is
+   (0,3,1) and so outranks these; it therefore sets only --ry. .is-visible outranks both and resets to
+   transform:none, so every variant is free: only the hidden state differs.
+   Anything travelling on X must sit in an overflow-x:clip section, or it
+   inflates documentElement.scrollWidth and trips the mobile overflow harness. */
+html.reveal-ready .reveal--left {
+  --rx: -110px;
+  --ry: 0px;
+}
+html.reveal-ready .reveal--right {
+  --rx: 110px;
+  --ry: 0px;
+}
+html.reveal-ready .reveal--down {
+  --ry: -64px;
+}
+html.reveal-ready .reveal--in {
+  --rs: 0.86;
+  --ry: 0px;
+}
+html.reveal-ready .reveal--out {
+  --rs: 1.14;
+  --ry: 0px;
+}
+html.reveal-ready .reveal--tilt-left {
+  --rx: -96px;
+  --ry: 30px;
+  --rr: -3deg;
+}
+html.reveal-ready .reveal--tilt-right {
+  --rx: 96px;
+  --ry: 30px;
+  --rr: 3deg;
+}
+/* Only --ry, deliberately: this rule is (0,3,1) and the directional variants
+   above are (0,2,1), so setting --rx here would silently beat them and strip
+   the X travel off a combined <Reveal wipe from="left">. */
 html.reveal-ready .reveal.reveal--wipe {
-  transform: translateY(105%);
+  --ry: 105%;
 }
 html.reveal-ready .reveal.is-visible {
   opacity: 1;
   transform: none;
 }
 
-/* Respect users who prefer less motion */
+/* ---------------------------------------------------------------------------
+   Exit choreography. Blocks do not just arrive and freeze - they drift and
+   fade as they leave the top of the viewport, which is what makes a long page
+   feel like a journey rather than a stack. Toggled by class, so it is fully
+   reversible: scroll back up and the block returns to its resting state.
+
+   MUST stay below the .is-visible rule - both are specificity (0,3,1), so
+   source order is what makes leaving win over arrived.
+
+   Travel budget is deliberately small next to the entrances: by the time a
+   block is leaving it is already mostly off-screen, and a large exit throw
+   would either read as a glitch or drag readable content off the page.
+--------------------------------------------------------------------------- */
+html.reveal-ready .reveal.is-leaving {
+  --lx: 0px;
+  --ly: -56px;
+  --ls: 0.97;
+  opacity: 0;
+  transform: translate3d(var(--lx), var(--ly), 0) scale(var(--ls));
+}
+html.reveal-ready .reveal--exit-left.is-leaving {
+  --lx: -110px;
+  --ly: -20px;
+}
+html.reveal-ready .reveal--exit-right.is-leaving {
+  --lx: 110px;
+  --ly: -20px;
+}
+html.reveal-ready .reveal--exit-up.is-leaving {
+  --ly: -90px;
+}
+html.reveal-ready .reveal--exit-in.is-leaving {
+  --ls: 0.88;
+  --ly: -24px;
+}
+html.reveal-ready .reveal--exit-out.is-leaving {
+  --ls: 1.1;
+  --ly: -24px;
+}
+
+/* Respect users who prefer less motion.
+
+   This deliberately does NOT flatten everything to a dead page. Directional
+   travel, scaling and rotation are the vestibular risk and are all removed
+   with !important; a plain opacity fade is not, and it is the only thing kept
+   so the page still reads as alive. Exits are disabled outright here: content
+   fading out under the pointer is disorienting, and a reduced-motion visitor
+   should never watch text they are reading disappear.
+
+   The global `* { transition-duration: 0.001ms !important }` below would kill
+   the fade, so the duration is restated !important on a more specific
+   selector. Delete this block to return to a fully static reduced-motion
+   experience. */
 @media (prefers-reduced-motion: reduce) {
   html.reveal-ready .reveal {
+    transform: none !important;
+    transition: opacity 0.45s ease !important;
+  }
+  html.reveal-ready .reveal.is-leaving {
     opacity: 1 !important;
     transform: none !important;
-    transition: none !important;
   }
 
   html {
