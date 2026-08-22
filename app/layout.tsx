@@ -94,6 +94,9 @@ export default function RootLayout({
     url: SITE_URL,
     description: SITE_DESCRIPTION,
     inLanguage: "en",
+    // Ties the site to the owner's public contact points so search engines can
+    // associate them with the brand (mirrors the Footer contact block).
+    sameAs: ["https://www.instagram.com/theeternaltruth.official/"],
   };
 
   return (

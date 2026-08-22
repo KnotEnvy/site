@@ -9,12 +9,17 @@ import VideoCard, { type Video } from "@/components/ui/VideoCard";
 import VideoModal from "@/components/ui/VideoModal";
 import { clsx } from "@/lib/clsx";
 
-// The three curated playlists ("vaults") on YouTube. IDs verified via oEmbed:
-// HEAVENLY NDE VAULT / SCIENTIFIC NDE VAULT / HELLISH NDE VAULT.
+// The three curated playlists ("vaults") on YouTube, REPLACED 2026-08-21: the
+// stakeholder's original three playlists were corrupted and rebuilt from
+// scratch under new IDs. Confirmed before swapping — the new IDs resolve with
+// real titles (SCIENTIFIC / HEAVENLY / HELLISH NDE PLAYLIST) while all three
+// old IDs now return an "undefined" title, i.e. they are genuinely dead.
+// Every video wired below was checked to still be a member of its new
+// playlist, so no &list= link points into a vault that no longer contains it.
 const LIST = {
-  heaven: "PLQ5vRAVqoE8g",
-  science: "PLGiV6gNcerXY",
-  hell: "PLCL4ntHncnUw",
+  heaven: "PLSl16UnNhA0A",
+  science: "PLXe5BrrIhzVw",
+  hell: "PLBxFE3MrwkFI",
 } as const;
 
 /**
@@ -53,7 +58,7 @@ type Category = {
 const CATEGORIES: Category[] = [
   {
     id: "science",
-    kicker: "Vault 01 · 11 investigations",
+    kicker: "Vault 01 · 12 investigations",
     title: "The Science: Fact vs. Myth",
     accent: "text-science",
     bar: "bg-science",
@@ -71,6 +76,7 @@ const CATEGORIES: Category[] = [
       yt("9gMYyRcE6DA", LIST.science, "Different Religions Encounter the Same God in Near Death Experiences"),
       yt("vxnmDhs6Nrg", LIST.science, "3 Incredible Proofs of Heaven: What Global Near Death Experiences Reveal"),
       yt("WsGpFc79O0k", LIST.science, "NDEs, Neuroscience, and the Soul, with Dr. Lee Warren"),
+      yt("AzkzYzsOH-c", LIST.science, "He Thought It Was Fake — Until He Witnessed It Firsthand"),
       yt("_TsOqTRUL3c", LIST.science, "20 Near Death Experience Commonalities That Align with the Bible"),
       yt("ragcEDleVcU", LIST.science, "The Dark Side of NDEs: Terror, Rescue, and Redemption"),
       yt("tTc0ZDp2k_k", LIST.science, "Debunking the 'Brain Hallucination' Theory of NDEs, with Dr. Jeff Long"),
@@ -113,18 +119,18 @@ const CATEGORIES: Category[] = [
   },
   {
     id: "hell",
-    kicker: "Vault 03 · 17 warnings",
+    kicker: "Vault 03 · 20 warnings",
     title: "Hellish Experiences",
     accent: "text-hell",
     bar: "bg-hell",
     blurb:
-      "Not every crossing is peaceful. Seventeen accounts from people who met something terrifying on the other side, and who came back grateful for a second chance.",
+      "Not every crossing is peaceful. Twenty accounts from people who met something terrifying on the other side, and who came back grateful for a second chance.",
     playlist: `https://www.youtube.com/playlist?list=${LIST.hell}`,
     meaning: {
       kicker: "Chapter 03 · The Warning",
       text: "Not every crossing ends in light. Some come back shaking, with a warning.",
       support:
-        "A nurse, a mortician, a Wiccan high priest. Seventeen people met the other destination, and every one of them came back to say the same thing: it is real, and it can be avoided.",
+        "A nurse, a mortician, a Wiccan high priest. Twenty people met the other destination, and every one of them came back to say the same thing: it is real, and it can be avoided.",
     },
     videos: [
       yt("UH3i8_UHXXU", LIST.hell, "The Terrifying Truth About Hell, with Chad Fisher and John Burke", "Start here"),
@@ -144,6 +150,9 @@ const CATEGORIES: Category[] = [
       yt("RjrwQaBpR_o", LIST.hell, "I Died in a Motorcycle Accident and Fell into Hell, Then an Angel Took Me to Heaven: Diamond's NDE"),
       yt("M67k5a3F1qs", LIST.hell, "I Never Believed Hell Existed, Until My Near Death Experience: Constantine's Story"),
       yt("EGcrupM6W-Q", LIST.hell, "I Thought I Was Saved… Until I Died"),
+      yt("StIUoSwQAT0", LIST.hell, "He Encountered Jesus, and Many of Hell's Torments, with Robyn Cunningham"),
+      yt("KztSK1TXecw", LIST.hell, "Dead for 3:47… It Felt Like I Was in Hell for Months"),
+      yt("IaAHkA_TqKQ", LIST.hell, "I Died and Jesus Welcomed Me to Heaven, Then I Went to Hell"),
     ],
   },
   {
