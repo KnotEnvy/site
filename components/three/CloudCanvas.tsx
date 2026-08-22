@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { pointer, addRipple } from "@/lib/scroll";
+import { pointer } from "@/lib/scroll";
 import CanvasErrorBoundary from "@/components/three/CanvasErrorBoundary";
 
 // WebGL must be client-only; the CSS sky gradient on <body> paints instantly
@@ -33,17 +33,11 @@ export default function CloudCanvas() {
       pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
     };
-    const onDown = (e: PointerEvent) => {
-      // NDC: x right-positive, y up-positive (flip the DOM's y-down).
-      const x = (e.clientX / window.innerWidth) * 2 - 1;
-      const y = -((e.clientY / window.innerHeight) * 2 - 1);
-      addRipple(x, y);
-    };
+    // Only pointer MOVE is bridged into the scene. The pointerdown listener
+    // that fired a click shockwave was removed 2026-08-21 (see lib/scroll.ts).
     window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("pointerdown", onDown, { passive: true });
     return () => {
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerdown", onDown);
     };
   }, []);
 

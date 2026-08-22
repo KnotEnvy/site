@@ -55,7 +55,10 @@ const iframeSrc = await page.locator('iframe[src*="youtube.com/embed"]').getAttr
 console.log(`lightbox iframe: ${iframeSrc ?? "NOT FOUND"}`);
 await page.screenshot({ path: path.join(OUT, "lightbox.png") });
 await page.keyboard.press("Escape");
-await page.waitForTimeout(800);
+// 800ms clipped the AnimatePresence exit often enough to report a FALSE
+// "still open" (seen 2026-08-21; five re-runs incl. live all read 0). Give the
+// exit real margin before asserting — criticalLessons #13.
+await page.waitForTimeout(1500);
 const stillOpen = await page.locator('iframe[src*="youtube.com/embed"]').count();
 console.log(`after Esc, iframes on page: ${stillOpen}`);
 

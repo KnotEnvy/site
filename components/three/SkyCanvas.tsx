@@ -20,7 +20,7 @@ import { Clouds, Cloud } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { useReducedMotion } from "motion/react";
 import * as THREE from "three";
-import { scrollProgress, pointer, ripples } from "@/lib/scroll";
+import { scrollProgress, pointer } from "@/lib/scroll";
 import { useDeviceTier } from "@/lib/useDeviceTier";
 import { createSkyState, sampleSky, type SkyState } from "@/lib/palette";
 
@@ -857,20 +857,19 @@ function EEGMonitor({ state, calm }: { state: SkyState; calm: boolean }) {
 
 /* -------------------------------------------------------------------------- */
 /*  Interactions — the sky reacts to you. A cursor-following light brightens    */
-/*  the clouds where you point, and every click/tap fires an expanding          */
-/*  shockwave ring (colour pulled from the current descent palette).            */
+/*  the clouds where you point.                                                 */
+/*                                                                              */
+/*  This used to ALSO fire an expanding shockwave ring on every click/tap (a    */
+/*  6-slot pool of additive HDR rings). Removed 2026-08-21 at the stakeholder's */
+/*  direction: it fired on every interaction — including taps on video cards    */
+/*  and nav links — and pulled the eye away from the content. The pointerdown   */
+/*  listener and the ripple queue that fed it are gone too (CloudCanvas.tsx,    */
+/*  lib/scroll.ts); don't re-add one without re-adding the other.               */
 /* -------------------------------------------------------------------------- */
-const BURST_POOL = 6;
-const BURST_LIFE = 1100; // ms
-
 function Interactions({ state }: { state: SkyState }) {
   const { camera } = useThree();
   const light = useRef<THREE.PointLight>(null);
   const dir = useMemo(() => new THREE.Vector3(), []);
-  const meshes = useRef<(THREE.Mesh | null)[]>([]);
-  const slots = useRef(
-    Array.from({ length: BURST_POOL }, () => ({ active: false, start: 0, x: 0, y: 0 }))
-  );
 
   // Project an NDC point onto a plane `dist` units in front of the camera.
   const place = (obj: THREE.Object3D, x: number, y: number, dist: number) => {
@@ -884,72 +883,9 @@ function Interactions({ state }: { state: SkyState }) {
       place(light.current, pointer.x, -pointer.y, 11);
       light.current.color.copy(state.light);
     }
-
-    // Drain queued ripples into any free pool slots.
-    while (ripples.length) {
-      const r = ripples.shift();
-      if (!r) break;
-      const slot = slots.current.find((s) => !s.active);
-      if (!slot) break;
-      slot.active = true;
-      slot.start = r.start;
-      slot.x = r.x;
-      slot.y = r.y;
-    }
-
-    const now = performance.now();
-    for (let i = 0; i < BURST_POOL; i++) {
-      const s = slots.current[i];
-      const m = meshes.current[i];
-      if (!m) continue;
-      if (!s.active) {
-        m.visible = false;
-        continue;
-      }
-      const age = (now - s.start) / BURST_LIFE;
-      if (age >= 1) {
-        s.active = false;
-        m.visible = false;
-        continue;
-      }
-      m.visible = true;
-      place(m, s.x, s.y, 12);
-      m.quaternion.copy(camera.quaternion); // billboard toward camera
-      m.scale.setScalar(0.6 + age * 7);
-      const mat = m.material as THREE.MeshBasicMaterial;
-      // HDR-hot so the expanding ring blooms like a shockwave of light.
-      mat.color.copy(state.sun).multiplyScalar(2);
-      mat.opacity = (1 - age) * 0.7;
-    }
   });
 
-  return (
-    <>
-      <pointLight ref={light} intensity={2.2} distance={32} decay={2} color="#fff4d6" />
-      {Array.from({ length: BURST_POOL }).map((_, i) => (
-        <mesh
-          key={i}
-          ref={(el) => {
-            meshes.current[i] = el;
-          }}
-          visible={false}
-          renderOrder={3}
-        >
-          <ringGeometry args={[0.66, 1, 64]} />
-          <meshBasicMaterial
-            color="#ffffff"
-            transparent
-            opacity={0}
-            toneMapped={false}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-            side={THREE.DoubleSide}
-            fog={false}
-          />
-        </mesh>
-      ))}
-    </>
-  );
+  return <pointLight ref={light} intensity={2.2} distance={32} decay={2} color="#fff4d6" />;
 }
 
 /* -------------------------------------------------------------------------- */
