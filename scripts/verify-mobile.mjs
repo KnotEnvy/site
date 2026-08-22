@@ -47,12 +47,32 @@ async function audit(label, contextOpts, depths) {
   await page.waitForTimeout(5000); // sky warmup
 
   const vw = contextOpts.viewport.width;
-  const canvasPainted = await page.evaluate(() => {
-    const c = document.querySelector("canvas");
-    if (!c) return "NO CANVAS";
-    const r = c.getBoundingClientRect();
-    return r.width > 0 && r.height > 0 ? `canvas ${Math.round(r.width)}x${Math.round(r.height)}` : "canvas 0-size";
-  });
+  // The canvas is lazily imported and then sized by r3f, so a single read can
+  // catch it absent, at r3f's 300x150 default, or at 0 - all of which read as a
+  // broken canvas when it is merely late. Under machine load this reported
+  // "canvas 0-size" on a perfectly healthy build (2026-08-21). Poll instead.
+  const canvasPainted = await (async () => {
+    for (let i = 0; i < 40; i++) {
+      const r = await page.evaluate(() => {
+        const c = document.querySelector("canvas");
+        if (!c) return null;
+        const b = c.getBoundingClientRect();
+        return { w: Math.round(b.width), h: Math.round(b.height) };
+      });
+      if (r && r.w >= vw) return `canvas ${r.w}x${r.h}`;
+      await page.waitForTimeout(250);
+    }
+    const r = await page.evaluate(() => {
+      const c = document.querySelector("canvas");
+      if (!c) return null;
+      const b = c.getBoundingClientRect();
+      return { w: Math.round(b.width), h: Math.round(b.height) };
+    });
+    if (!r) return "NO CANVAS";
+    return r.w > 0 && r.h > 0
+      ? `canvas ${r.w}x${r.h} (NEVER REACHED VIEWPORT WIDTH ${vw})`
+      : "canvas 0-size";
+  })();
 
   const overflows = [];
   for (const d of depths) {
