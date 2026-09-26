@@ -45,17 +45,26 @@ export default function RevealController() {
     // callback we must assume it might be broken and rescue everything.
     let observerWorks = false;
 
+    // A block arrives once 12% of it is in view - OR once a fifth of the
+    // screen's height of it is, whichever comes first. The pixel rule is for
+    // TALL blocks: the 12% ratio is area-based, so a 1,800px card on a phone
+    // (the reading plan) could sit half-visible yet under 12%, and a hidden
+    // block's sideways entrance offset (reveal--left: -110px) shaves its
+    // intersecting WIDTH too. Both left real content invisible on screen.
+    // Several thresholds so the callback fires often enough to notice.
+    const MIN_VISIBLE_PX = () => window.innerHeight * 0.15;
     const enterIO = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) {
-            observerWorks = true;
+          if (!entry.isIntersecting) continue;
+          observerWorks = true;
+          if (entry.intersectionRatio >= 0.12 || entry.intersectionRect.height >= MIN_VISIBLE_PX()) {
             entry.target.classList.add("is-visible");
             enterIO.unobserve(entry.target);
           }
         }
       },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+      { threshold: [0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12], rootMargin: "0px 0px -8% 0px" }
     );
 
     // A block is leaving once its bottom edge has climbed into the top fifth of

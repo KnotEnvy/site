@@ -294,7 +294,11 @@ function ChapterSection({
       }}
       id={chapter.id}
       aria-labelledby={`${chapter.id}-title`}
-      className="relative h-[250vh]"
+      // overflow-x CLIP (not hidden): the narration scrim reaches 64px past the
+      // column, and unclipped it widened the page on phones - mobile Chrome
+      // then zoomed the whole page out. clip creates no scroll container, so
+      // the sticky stage inside still pins to the viewport.
+      className="relative h-[250vh] overflow-x-clip"
     >
       {/* min-h, not h: on a short phone the narration + verse can be taller
           than the screen, and a fixed-height stage would clip the end of it. */}

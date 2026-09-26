@@ -141,8 +141,14 @@ for (const route of ROUTES) {
     });
   }
 
+  // Horizontal overflow. On an emulated PHONE, content wider than the screen
+  // makes Chrome zoom the page out, which widens innerWidth too - so the
+  // scrollWidth comparison alone reads 0. Also count any growth of the layout
+  // viewport past the device width (it caught a 438px-wide Ascent on a 390px
+  // phone that the old check passed).
   const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - window.innerWidth
+    (w) => Math.max(document.documentElement.scrollWidth - window.innerWidth, window.innerWidth - w),
+    VIEW_W
   );
   // Reveal blocks ON SCREEN right now that are still hidden - a stranded block.
   // (Blocks the instant scroll-jumps skipped over are legitimately unrevealed:
