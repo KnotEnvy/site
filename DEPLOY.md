@@ -73,3 +73,24 @@ node scripts/verify-reduced.mjs http://localhost:3000 ./.verify   # reduced moti
 `verify-reduced.mjs` matters more than it looks: the stakeholder's own machine
 has OS Reduced Motion enabled, and an SSR'd motion transform already caused one
 sticky hydration bug there. See `criticalLessons` #11 in the handoff.
+
+### The multi-page site (2026-09 expansion)
+
+Six pages now share one WebGL sky; each picks a *journey* (`lib/journeys.ts`).
+Port 3000 on the dev machine belongs to another project, so serve on 3001 and
+pass the URL explicitly. In Git Bash, prefix commands that take `/route`
+arguments with `MSYS_NO_PATHCONV=1`, or `/` gets rewritten into a Windows path.
+
+```bash
+MSYS_NO_PATHCONV=1 node scripts/verify-pages.mjs http://localhost:3001 ./.verify-pages            # every route: console, hydration, canvas, overflow, SEO tags
+MSYS_NO_PATHCONV=1 node scripts/verify-pages.mjs http://localhost:3001 ./.verify-pages-m --mobile  # 390x844 touch
+MSYS_NO_PATHCONV=1 node scripts/verify-pages.mjs http://localhost:3001 ./.verify-pages-r --reduced # reduced motion
+node scripts/verify-ascent.mjs http://localhost:3001 ./.verify-ascent   # every chapter of The Ascent (add --mobile)
+node scripts/verify-nav.mjs    http://localhost:3001                    # client-side navigation plumbing
+node scripts/make-og-pages.mjs http://localhost:3001                    # re-capture public/og/*.jpg share cards
+```
+
+Adding a page: register it in `lib/pages.ts` (nav, sitemap, llms.txt and its
+sky journey all read from there), build its metadata with `pageMetadata()`
+from `lib/seo.ts` (never rely on the layout's), and add it to the harness
+routes.

@@ -14,6 +14,13 @@
    by accident because the clone shares the same Color instance). Every frame-
    driven uniform update below reads the material off the mesh ref instead. */
 
+/* JOURNEYS: the canvas lives in the root layout and survives navigation, so
+   each page picks a journey (lib/journeys.ts) instead of mounting its own
+   scene. Every set-piece below reads its presence from one damped `fx` state
+   rather than hard-coding a scroll range, so the same pieces can play a
+   different part on each page - and a page change cross-fades between skies
+   instead of cutting. */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Clouds, Cloud } from "@react-three/drei";
@@ -22,7 +29,16 @@ import { useReducedMotion } from "motion/react";
 import * as THREE from "three";
 import { scrollProgress, pointer } from "@/lib/scroll";
 import { useDeviceTier } from "@/lib/useDeviceTier";
-import { createSkyState, sampleSky, type SkyState } from "@/lib/palette";
+import {
+  copySky,
+  createSkyState,
+  dampSky,
+  sampleSky,
+  type SkyState,
+} from "@/lib/palette";
+import { JOURNEYS, createFx, type FxState, type JourneyId } from "@/lib/journeys";
+import Starfield from "@/components/three/Starfield";
+import StoryParticles from "@/components/three/StoryParticles";
 
 /* -------------------------------------------------------------------------- */
 /*  Cloud field — a volume the camera falls THROUGH, spread across the whole   */
@@ -144,13 +160,18 @@ const EMBER_FRAG = /* glsl */ `
   uniform float uOpacity;
   uniform vec3 uColorHot;
   uniform vec3 uColorCool;
+  uniform vec3 uLightHot;
+  uniform vec3 uLightCool;
+  uniform float uTint;      // 0 = fire embers, 1 = golden motes of light
   varying float vAlpha;
   void main() {
     vec2 d = gl_PointCoord - 0.5;
     float r = length(d);
     if (r > 0.5) discard;
     float soft = smoothstep(0.5, 0.0, r);
-    vec3 col = mix(uColorCool, uColorHot, soft);
+    vec3 fire = mix(uColorCool, uColorHot, soft);
+    vec3 light = mix(uLightCool, uLightHot, soft);
+    vec3 col = mix(fire, light, uTint);
     gl_FragColor = vec4(col, soft * vAlpha * uOpacity);
   }
 `;
@@ -191,6 +212,11 @@ function Embers({ count, state }: { count: number; state: SkyState }) {
       // HDR-hot (>1) so ember cores cross the Bloom threshold like sparks.
       uColorHot: { value: new THREE.Color("#ffd58a").multiplyScalar(2.2) },
       uColorCool: { value: new THREE.Color("#ff3b14").multiplyScalar(1.6) },
+      // The same column, re-tinted, becomes rising motes of light on the
+      // journeys that climb toward Heaven. Softer than fire - still sparkles.
+      uLightHot: { value: new THREE.Color("#fff6e0").multiplyScalar(1.9) },
+      uLightCool: { value: new THREE.Color("#ffc46a").multiplyScalar(1.2) },
+      uTint: { value: 0 },
     }),
     []
   );
@@ -201,6 +227,8 @@ function Embers({ count, state }: { count: number; state: SkyState }) {
     const u = (p.material as THREE.ShaderMaterial).uniforms;
     u.uTime.value += Math.min(delta, 0.05);
     u.uOpacity.value = state.ember;
+    u.uTint.value = state.emberTint;
+    p.visible = state.ember > 0.005;
     // Surround the viewer: anchor the column below the camera so embers rise past it.
     p.position.set(camera.position.x, camera.position.y - 18, camera.position.z - 2);
   });
@@ -316,10 +344,12 @@ const RUSH_FRAG = /* glsl */ `
 function CloudRush({
   count,
   state,
+  fx,
   calm,
 }: {
   count: number;
   state: SkyState;
+  fx: FxState;
   calm: boolean;
 }) {
   const ref = useRef<THREE.Mesh>(null);
@@ -399,18 +429,17 @@ function CloudRush({
     u.uTravel.value = sp * RUSH_TRAVEL * (calm ? 0.5 : 1) + drift.current;
     u.uNearFade.value.set(calm ? 4.5 : 0.3, calm ? 12 : 2.6);
 
-    // Presence: dense cumulus at the top (you enter the sky), thinned to almost
-    // nothing through the middle so the set-pieces read, then back as ash and
-    // smoke near Hell — lighter there than in Heaven, so the fire still burns
-    // through rather than being curtained off.
-    const heaven = 1 - THREE.MathUtils.smoothstep(sp, 0.03, 0.4);
-    const hell = THREE.MathUtils.smoothstep(sp, 0.58, 0.92);
-    const presence = 0.06 + 0.8 * Math.max(heaven, hell * 0.85);
+    // Presence comes from the journey. On the Descent: dense cumulus at the top
+    // (you enter the sky), thinned to almost nothing through the middle so the
+    // set-pieces read, then back as ash and smoke near Hell — lighter there
+    // than in Heaven, so the fire still burns through rather than being
+    // curtained off.
+    const presence = fx.rush;
     u.uOpacity.value = presence;
 
-    // Tint: white cumulus -> dusk violet -> dark ash lit by the fire below.
+    // Tint: white cumulus -> dusk violet -> dark ash lit by the glow below.
     // Every term stays under 1.05 so these never cross the Bloom threshold.
-    const ash = THREE.MathUtils.smoothstep(sp, 0.5, 0.95);
+    const ash = fx.ash;
     u.uLit.value
       .copy(white)
       .lerp(state.light, 0.4)
@@ -494,7 +523,7 @@ const SHAFT_FRAG = /* glsl */ `
   }
 `;
 
-function LightShaft({ state, calm }: { state: SkyState; calm: boolean }) {
+function LightShaft({ state, fx, calm }: { state: SkyState; fx: FxState; calm: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   const { camera } = useThree();
   const uniforms = useMemo(
@@ -511,9 +540,9 @@ function LightShaft({ state, calm }: { state: SkyState; calm: boolean }) {
     if (!m) return;
     const u = (m.material as THREE.ShaderMaterial).uniforms;
     u.uTime.value += Math.min(delta, 0.05) * (calm ? 0.25 : 1);
-    const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
-    // Brightest at the very top; gone by the first third of the descent.
-    const strength = 1 - THREE.MathUtils.smoothstep(sp, 0.04, 0.34);
+    // On the Descent: brightest at the very top, gone by the first third. On
+    // the climbing journeys it is the light waiting at the END.
+    const strength = fx.shaft;
     u.uStrength.value = strength;
     // Tint with the sun so the radiance stays in chromatic sync with the sky.
     u.uColor.value.copy(state.sun).lerp(state.light, 0.4);
@@ -576,7 +605,7 @@ const LAVA_FRAG = /* glsl */ `
   }
 `;
 
-function LavaGlow({ state, calm }: { state: SkyState; calm: boolean }) {
+function LavaGlow({ state, fx, calm }: { state: SkyState; fx: FxState; calm: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   const { camera } = useThree();
   const uniforms = useMemo(
@@ -594,8 +623,7 @@ function LavaGlow({ state, calm }: { state: SkyState; calm: boolean }) {
     if (!m) return;
     const u = (m.material as THREE.ShaderMaterial).uniforms;
     u.uTime.value += Math.min(delta, 0.05) * (calm ? 0.3 : 1);
-    const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
-    const strength = THREE.MathUtils.smoothstep(sp, 0.62, 0.92);
+    const strength = fx.lava;
     u.uStrength.value = strength;
     u.uHot.value.copy(state.ground);
     u.uCool.value.copy(state.horizon);
@@ -665,7 +693,7 @@ const FLARE_GHOSTS = [
   { k: -1.0, scale: 0.6, opacity: 0.24, ring: 0, tint: 0.85 },
 ];
 
-function LensFlare({ state }: { state: SkyState }) {
+function LensFlare({ state, fx }: { state: SkyState; fx: FxState }) {
   const { camera } = useThree();
   const meshes = useRef<(THREE.Mesh | null)[]>([]);
   const sunNdc = useMemo(() => new THREE.Vector3(), []);
@@ -688,12 +716,10 @@ function LensFlare({ state }: { state: SkyState }) {
   };
 
   useFrame(() => {
-    const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
     // Project the sun to screen space; bail if it's behind the camera.
     sunNdc.set(7, state.sunY, -32).project(camera);
     const inFront = sunNdc.z < 1;
-    const heaven = 1 - THREE.MathUtils.smoothstep(sp, 0.1, 0.55);
-    const strength = inFront ? heaven : 0;
+    const strength = inFront ? fx.flare : 0;
 
     // Cursor proximity to the sun (pointer.y is DOM y-down → flip to NDC y-up).
     const px = pointer.x;
@@ -767,6 +793,7 @@ const EEG_VERT = /* glsl */ `
 const EEG_FRAG = /* glsl */ `
   uniform float uTime;
   uniform float uStrength;
+  uniform float uAmp;     // 1 = beating, 0 = flatline (the Evidence page)
   uniform vec3 uColor;
   varying vec2 vUv;
 
@@ -782,7 +809,7 @@ const EEG_FRAG = /* glsl */ `
   }
 
   void main() {
-    float sig = beat(vUv.x * 3.0);
+    float sig = beat(vUv.x * 3.0) * uAmp;
     float centerY = 0.5 + sig * 0.34;
     float d = abs(vUv.y - centerY);
 
@@ -804,7 +831,7 @@ const EEG_FRAG = /* glsl */ `
   }
 `;
 
-function EEGMonitor({ state, calm }: { state: SkyState; calm: boolean }) {
+function EEGMonitor({ state, fx, calm }: { state: SkyState; fx: FxState; calm: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   const { camera } = useThree();
   const dir = useMemo(() => new THREE.Vector3(), []);
@@ -813,6 +840,7 @@ function EEGMonitor({ state, calm }: { state: SkyState; calm: boolean }) {
     () => ({
       uTime: { value: 0 },
       uStrength: { value: 0 },
+      uAmp: { value: 1 },
       uColor: { value: new THREE.Color("#7fe9ff") },
     }),
     []
@@ -823,12 +851,11 @@ function EEGMonitor({ state, calm }: { state: SkyState; calm: boolean }) {
     if (!m) return;
     const u = (m.material as THREE.ShaderMaterial).uniforms;
     u.uTime.value += Math.min(delta, 0.05) * (calm ? 0.4 : 1);
-    const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
-    // Present across the Science zone only — a bump in the middle of the descent.
-    const strength =
-      THREE.MathUtils.smoothstep(sp, 0.34, 0.44) *
-      (1 - THREE.MathUtils.smoothstep(sp, 0.6, 0.7));
+    // On the Descent: a bump across the Science zone. On the Evidence page the
+    // same monitor opens the page, beating, then flatlines as you scroll.
+    const strength = fx.eeg;
     u.uStrength.value = strength;
+    u.uAmp.value = fx.eegAmp;
     // The descent slightly tints the monitor without losing its clinical cast.
     u.uColor.value.copy(clinical).lerp(state.light, 0.15);
 
@@ -889,16 +916,58 @@ function Interactions({ state }: { state: SkyState }) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  The scene: applies the palette to fog/lights/sun each frame and flies the  */
-/*  camera down a non-linear path (descend + bank sideways + surge toward/away)*/
+/*  The scene: applies the journey's palette to fog/lights/sun each frame and  */
+/*  flies the camera along the journey's non-linear path (travel + sway + bank */
+/*  + surge toward/away).                                                      */
 /* -------------------------------------------------------------------------- */
-function SkyScene({ lite }: { lite: boolean }) {
+
+/* The sun as a soft, glowing orb (every journey except the Descent). The
+   Descent's hard-edged disc is part of its approved look - a blood-red sun
+   over Hell - but on the other journeys the same disc, whenever it wasn't
+   bright enough to bloom, read as a flat cardboard circle sitting behind the
+   page's text. This version fades to nothing at its rim (a view-angle
+   falloff), so it only ever reads as light. */
+const SOFT_SUN_VERT = /* glsl */ `
+  varying vec3 vN;
+  varying vec3 vV;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vN = normalize(normalMatrix * normal);
+    vV = normalize(-mv.xyz);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+
+const SOFT_SUN_FRAG = /* glsl */ `
+  uniform vec3 uColor;
+  varying vec3 vN;
+  varying vec3 vV;
+  void main() {
+    float f = clamp(dot(normalize(vN), normalize(vV)), 0.0, 1.0);
+    float a = pow(f, 2.4);
+    gl_FragColor = vec4(uColor * (0.55 + 0.9 * f), a);
+  }
+`;
+
+/** How quickly the sky eases toward its target (per second). High enough that
+ *  scrolling still feels direct; low enough that a page change reads as the
+ *  camera flying from one world into the next rather than a hard cut. */
+const SKY_EASE = 4.5;
+
+function SkyScene({ lite, journey }: { lite: boolean; journey: JourneyId }) {
   const quality = useDeviceTier();
   const calm = !!useReducedMotion();
   const { camera, scene } = useThree();
 
+  // `state` / `fx` are what every set-piece reads; `target*` is the journey
+  // sampled at the current scroll; the former eases toward the latter.
   const state = useMemo(() => createSkyState(), []);
+  const target = useMemo(() => createSkyState(), []);
+  const fx = useMemo(() => createFx(), []);
+  const targetFx = useMemo(() => createFx(), []);
+  const primed = useRef(false);
   const lookTarget = useRef(new THREE.Vector3(0, 4, -10));
+  const softSunUniforms = useMemo(() => ({ uColor: { value: new THREE.Color("#fff3d0") } }), []);
 
   const sunRef = useRef<THREE.Mesh>(null);
   const keyRef = useRef<THREE.DirectionalLight>(null);
@@ -930,10 +999,37 @@ function SkyScene({ lite }: { lite: boolean }) {
     return quality.tier === "mid" ? 38 : 64;
   }, [lite, quality.tier]);
 
+  // The story "spirit" and the starfield cost GPU time, so they are budgeted
+  // per tier like everything else; the spirit only mounts on The Ascent.
+  const storyCount = useMemo(() => {
+    if (lite) return 1600;
+    if (quality.tier === "low") return 1800;
+    return quality.tier === "mid" ? 3200 : 5200;
+  }, [lite, quality.tier]);
+  const starCount = lite ? 400 : quality.tier === "low" ? 500 : quality.tier === "mid" ? 900 : 1400;
+
   useFrame((st, delta) => {
     const d = Math.min(delta, 0.05);
     const sp = THREE.MathUtils.clamp(scrollProgress.get(), 0, 1);
-    sampleSky(sp, state);
+    const J = JOURNEYS[journey];
+    sampleSky(sp, target, J.stops);
+    J.fx(sp, targetFx);
+    if (!primed.current) {
+      copySky(state, target);
+      Object.assign(fx, targetFx);
+      primed.current = true;
+    } else {
+      const a = 1 - Math.exp(-SKY_EASE * d);
+      dampSky(state, target, a);
+      fx.shaft += (targetFx.shaft - fx.shaft) * a;
+      fx.lava += (targetFx.lava - fx.lava) * a;
+      fx.eeg += (targetFx.eeg - fx.eeg) * a;
+      fx.eegAmp += (targetFx.eegAmp - fx.eegAmp) * a;
+      fx.flare += (targetFx.flare - fx.flare) * a;
+      fx.rush += (targetFx.rush - fx.rush) * a;
+      fx.ash += (targetFx.ash - fx.ash) * a;
+    }
+    const cam = J.camera;
 
     // --- Atmosphere ---------------------------------------------------------
     fog.color.copy(state.horizon);
@@ -946,25 +1042,33 @@ function SkyScene({ lite }: { lite: boolean }) {
     }
     if (sunRef.current) {
       sunRef.current.position.set(7, state.sunY, -32);
-      const mat = sunRef.current.material as THREE.MeshBasicMaterial;
+      const mat = sunRef.current.material as THREE.MeshBasicMaterial | THREE.ShaderMaterial;
       // Push the sun into HDR (>1) so the Bloom luminance threshold catches it
       // while the clouds (which sit near 1.0) stay below and don't wash out.
       // Kept modest — at ~3x the halo swallows the whole Heaven sky.
-      mat.color.copy(state.sun).multiplyScalar(0.85 + state.sunIntensity * 0.55);
-      sunRef.current.scale.setScalar(2.2 + state.sunIntensity * 1.6);
+      const k = 0.85 + state.sunIntensity * 0.55;
+      if ("uniforms" in mat && mat.uniforms.uColor) {
+        mat.uniforms.uColor.value.copy(state.sun).multiplyScalar(k);
+        // The soft orb loses its outer rim to the falloff; draw it larger so
+        // its visible glow matches the disc's footprint.
+        sunRef.current.scale.setScalar((2.2 + state.sunIntensity * 1.6) * 1.35);
+      } else {
+        (mat as THREE.MeshBasicMaterial).color.copy(state.sun).multiplyScalar(k);
+        sunRef.current.scale.setScalar(2.2 + state.sunIntensity * 1.6);
+      }
     }
 
     // --- Camera rig ---------------------------------------------------------
     if (calm) {
-      // Reduced motion: still descend THROUGH the cloud field as you scroll
-      // (it's user-driven, so a11y-safe) plus the full descent colour — but no
+      // Reduced motion: still travel THROUGH the cloud field as you scroll
+      // (it's user-driven, so a11y-safe) plus the full journey colour — but no
       // autonomous banking, surge, or idle drift that could trigger vestibular
-      // discomfort.
-      const ty = THREE.MathUtils.lerp(6, -12, sp);
+      // discomfort. (On the Descent this is exactly the original 6 -> -12.)
+      const ty = THREE.MathUtils.lerp(cam.y0 * 0.75, cam.y1 * 0.75, sp);
       camera.position.x = THREE.MathUtils.damp(camera.position.x, pointer.x * 0.6, 2, d);
       camera.position.y = THREE.MathUtils.damp(camera.position.y, ty, 2.5, d);
       camera.position.z = THREE.MathUtils.damp(camera.position.z, 14, 2, d);
-      lookTarget.current.set(pointer.x * 1.5, ty - 2, -10);
+      lookTarget.current.set(pointer.x * 1.5, ty - cam.lookDown * (2 / 3), -10);
       camera.lookAt(lookTarget.current);
       camera.rotation.z = 0;
       return;
@@ -972,19 +1076,21 @@ function SkyScene({ lite }: { lite: boolean }) {
 
     const t = st.clock.elapsedTime;
 
-    // Descend through the cloud field; sway sideways and surge toward/away so
+    // Travel through the cloud field; sway sideways and surge toward/away so
     // the journey reads as anything but a straight line.
-    const ty = THREE.MathUtils.lerp(8, -16, sp);
-    const tx = Math.sin(sp * Math.PI * 2.5) * 6 + pointer.x * 1.6;
-    const tz = 12 + Math.sin(sp * Math.PI * 3.0) * 5 + Math.cos(sp * Math.PI * 1.3) * 2;
+    const ty = THREE.MathUtils.lerp(cam.y0, cam.y1, sp);
+    const tx = Math.sin(sp * Math.PI * cam.swayFreq) * cam.sway + pointer.x * 1.6;
+    const tz =
+      12 + Math.sin(sp * Math.PI * cam.surgeFreq) * cam.surge + Math.cos(sp * Math.PI * 1.3) * 2;
 
     camera.position.x = THREE.MathUtils.damp(camera.position.x, tx, 3, d);
     camera.position.y = THREE.MathUtils.damp(camera.position.y, ty, 3, d);
     camera.position.z = THREE.MathUtils.damp(camera.position.z, tz, 3, d);
 
-    // Aim slightly ahead and down, with idle drift + cursor influence.
-    const lookX = Math.sin(sp * Math.PI * 2.5 + 0.7) * 3 + pointer.x * 2;
-    const lookY = ty - 3 - pointer.y * 2 + Math.sin(t * 0.3) * 0.5;
+    // Aim slightly ahead (down on the Descent, up on the climbs), with idle
+    // drift + cursor influence.
+    const lookX = Math.sin(sp * Math.PI * cam.swayFreq + 0.7) * cam.sway * 0.5 + pointer.x * 2;
+    const lookY = ty - cam.lookDown - pointer.y * 2 + Math.sin(t * 0.3) * 0.5;
     const lookZ = tz - 12;
     lookTarget.current.x = THREE.MathUtils.damp(lookTarget.current.x, lookX, 3, d);
     lookTarget.current.y = THREE.MathUtils.damp(lookTarget.current.y, lookY, 3, d);
@@ -992,12 +1098,13 @@ function SkyScene({ lite }: { lite: boolean }) {
     camera.lookAt(lookTarget.current);
 
     // Bank into the sideways sway for a sense of flight.
-    camera.rotation.z = Math.cos(sp * Math.PI * 2.5) * 0.1 - pointer.x * 0.03;
+    camera.rotation.z = Math.cos(sp * Math.PI * cam.swayFreq) * cam.bank - pointer.x * 0.03;
   });
 
   return (
     <>
       <SkyDome state={state} />
+      <Starfield count={starCount} state={state} calm={calm} />
 
       <ambientLight ref={ambientRef} intensity={1.7} />
       <directionalLight ref={keyRef} position={[6, 12, 6]} intensity={2.6} color="#fff6e0" />
@@ -1006,8 +1113,22 @@ function SkyScene({ lite }: { lite: boolean }) {
       {/* Sun / fire-source — emissive sphere, pushed past 1.0 in useFrame so
           the Bloom threshold turns it (and not the clouds) into a glow. */}
       <mesh ref={sunRef} position={[7, 9, -32]}>
-        <sphereGeometry args={[3, 24, 24]} />
-        <meshBasicMaterial color="#fff3d0" toneMapped={false} fog={false} />
+        <sphereGeometry args={[3, 32, 32]} />
+        {journey === "descent" ? (
+          <meshBasicMaterial key="disc" color="#fff3d0" toneMapped={false} fog={false} />
+        ) : (
+          <shaderMaterial
+            key="soft"
+            uniforms={softSunUniforms}
+            vertexShader={SOFT_SUN_VERT}
+            fragmentShader={SOFT_SUN_FRAG}
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+            fog={false}
+          />
+        )}
       </mesh>
 
       <Clouds
@@ -1044,17 +1165,23 @@ function SkyScene({ lite }: { lite: boolean }) {
           with scroll. Drawn after the world (renderOrder 1) so it occludes the
           god-rays into real shafts, and before the additive set-pieces so fire
           and flare still read through it. */}
-      <CloudRush count={rushCount} state={state} calm={calm} />
+      <CloudRush count={rushCount} state={state} fx={fx} calm={calm} />
 
       {/* Thematic set-pieces — all emissive/additive, with colours pushed into
           HDR (>1) so only they cross the Bloom luminance threshold and glow.
-          Skipped in lite recovery mode (cheap shader planes/points). */}
-      {!lite && <LightShaft state={state} calm={calm} />}
-      {!lite && <LavaGlow state={state} calm={calm} />}
-      {!lite && <LensFlare state={state} />}
-      {!lite && <EEGMonitor state={state} calm={calm} />}
+          Skipped in lite recovery mode (cheap shader planes/points). Each
+          one's presence comes from the journey's fx curves. */}
+      {!lite && <LightShaft state={state} fx={fx} calm={calm} />}
+      {!lite && <LavaGlow state={state} fx={fx} calm={calm} />}
+      {!lite && <LensFlare state={state} fx={fx} />}
+      {!lite && <EEGMonitor state={state} fx={fx} calm={calm} />}
       <Embers count={lite ? 0 : quality.embers} state={state} />
       <Interactions state={state} />
+
+      {/* The Ascent's particle "spirit". It IS that page's visual narrative,
+          so unlike the ornamental set-pieces it survives lite mode (with a
+          smaller budget). Mounted only on that journey. */}
+      {journey === "ascent" && <StoryParticles count={storyCount} calm={calm} />}
     </>
   );
 }
@@ -1062,11 +1189,13 @@ function SkyScene({ lite }: { lite: boolean }) {
 type SkyCanvasProps = {
   /** "Lite" mode after a context loss: no postprocessing/embers, DPR 1. */
   lite?: boolean;
+  /** Which page's sky to fly (lib/journeys.ts). */
+  journey?: JourneyId;
   /** Notified when the WebGL context is lost (the host handles recovery). */
   onContextLost?: () => void;
 };
 
-export default function SkyCanvas({ lite = false, onContextLost }: SkyCanvasProps) {
+export default function SkyCanvas({ lite = false, journey = "descent", onContextLost }: SkyCanvasProps) {
   const quality = useDeviceTier();
 
   // Pause the render loop while the tab is hidden — saves GPU/battery and eases
@@ -1123,7 +1252,7 @@ export default function SkyCanvas({ lite = false, onContextLost }: SkyCanvasProp
         });
       }}
     >
-      <SkyScene lite={lite} />
+      <SkyScene lite={lite} journey={journey} />
 
       {effects && (
         <EffectComposer multisampling={quality.multisampling}>

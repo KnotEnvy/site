@@ -40,6 +40,8 @@ type RevealProps = {
    * upward drift. Disabled entirely under prefers-reduced-motion.
    */
   exit?: RevealExit;
+  /** Marker for scripts/make-og-pages.mjs ("hide" = left out of share cards). */
+  "data-og"?: string;
 };
 
 export function Reveal({
@@ -49,9 +51,11 @@ export function Reveal({
   wipe = false,
   from = "up",
   exit,
+  "data-og": dataOg,
 }: RevealProps) {
   return (
     <div
+      data-og={dataOg}
       className={clsx(
         "reveal",
         wipe && "reveal--wipe",

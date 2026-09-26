@@ -20,10 +20,19 @@
   /* Vault 04 (evidence for Scripture) — warm gold, readable against the
      near-black end of the descent where that section sits. */
   --color-scripture: #e8a72c;
+  /* The same gold, deep enough for SMALL text on cream panels (~4.6:1 on
+     paper). #e8a72c is ~2.2:1 there - fine for big display type only. */
+  --color-scripture-deep: #946508;
+
+  /* Night / cosmos panels on the dark journeys (Great Minds, The Ascent). */
+  --color-night: #0a0d22;
+  --color-dawn: #ffcf7a;
 
   /* Type families (wired by next/font in layout.tsx) */
   --font-display: var(--font-anton), "Arial Narrow", sans-serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
+  /* Scripture and quotations. */
+  --font-serif: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
 }
 
 :root {
@@ -99,6 +108,260 @@ h3 {
 }
 .display-md {
   font-size: clamp(1.75rem, 5vw, 3.5rem);
+}
+
+/* Scripture / quotation display type. Cormorant is a display serif: it wants
+   size and a little weight to stay readable over a moving sky. */
+.verse {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  line-height: 1.28;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Body copy inside glass panels. Headings are uppercase Anton globally, so
+   anything that needs normal sentence case says so explicitly. */
+.copy {
+  font-family: var(--font-sans);
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.65;
+}
+
+/* Page arrival (app/template.tsx). CSS, not JS, so it can never strand a page
+   invisible if hydration fails. Opacity + a small rise only. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-enter {
+  animation: page-enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Rising motes of light (The Way Up card and similar). CSS-only; the global
+   reduced-motion rule below collapses them to a still field of lights. */
+.mote {
+  position: absolute;
+  bottom: -12px;
+  width: var(--mote-size, 4px);
+  height: var(--mote-size, 4px);
+  border-radius: 9999px;
+  background: radial-gradient(circle, #fffaf0 0%, #ffcf7a 55%, rgba(255, 207, 122, 0) 72%);
+  box-shadow: 0 0 12px 2px rgba(255, 207, 122, 0.55);
+  opacity: 0;
+  animation: mote-rise var(--mote-dur, 8s) linear var(--mote-delay, 0s) infinite;
+}
+@keyframes mote-rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(14px, -24rem, 0);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mote {
+    opacity: 0.6;
+    bottom: calc(var(--mote-size) * 9);
+  }
+}
+
+/* Evidence page: the patient monitor (components/evidence/FlatlineScrub.tsx).
+   Traces loop sideways like a real monitor; reduced motion stills them via the
+   global rule. When the heart flatlines the trace turns alarm red. */
+.monitor .trace {
+  /* fill-box: -50% must mean half the PATH (one full tile), not half the
+     SVG viewBox, or the loop visibly jumps. */
+  transform-box: fill-box;
+  animation: trace-run 3.2s linear infinite;
+}
+.monitor .trace-eeg {
+  animation-duration: 5s;
+}
+.monitor .trace-ecg {
+  stroke: #7fe9ff;
+  filter: drop-shadow(0 0 4px rgba(127, 233, 255, 0.8));
+  transition: stroke 0.4s;
+}
+.monitor .trace-eeg {
+  stroke: #b7a8ff;
+  filter: drop-shadow(0 0 3px rgba(183, 168, 255, 0.7));
+}
+.monitor .monitor-label {
+  color: #7fe9ff;
+  transition: color 0.4s;
+}
+.monitor.is-flat .trace-ecg {
+  stroke: #ff5a4a;
+  filter: drop-shadow(0 0 5px rgba(255, 90, 74, 0.9));
+}
+.monitor.is-flat .monitor-label {
+  color: #ff7a6a;
+}
+@keyframes trace-run {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Breath prayer orb (components/minds/BreathPrayer.tsx). The transition time
+   is the length of the current breath phase, so the orb IS the pacer. */
+.breath-orb {
+  background: radial-gradient(circle, #fffaf0 0%, #ffe7b0 38%, #ffcf7a 60%, rgba(255, 207, 122, 0) 72%);
+  box-shadow: 0 0 60px 10px rgba(255, 207, 122, 0.25);
+  transform: scale(0.74);
+  opacity: 0.8;
+  transition:
+    transform var(--dur, 1s) cubic-bezier(0.45, 0, 0.55, 1),
+    opacity var(--dur, 1s) ease-in-out,
+    box-shadow var(--dur, 1s) ease-in-out;
+}
+.breath-orb.is-full {
+  transform: scale(1);
+  opacity: 1;
+  box-shadow: 0 0 120px 30px rgba(255, 207, 122, 0.45);
+}
+/* Reduced motion: no growing - the light brightens and dims instead. The
+   global rule below zeroes every transition, so this one is restated with
+   !important on a more specific selector (the same pattern as .reveal). */
+@media (prefers-reduced-motion: reduce) {
+  html .breath-orb,
+  html .breath-orb.is-full {
+    transform: scale(0.85) !important;
+    transition:
+      opacity var(--dur, 1s) ease-in-out,
+      box-shadow var(--dur, 1s) ease-in-out !important;
+  }
+  html .breath-orb {
+    opacity: 0.45;
+  }
+  html .breath-orb.is-full {
+    opacity: 1;
+  }
+}
+
+/* Fine-tuning dials (components/minds/FineTuning.tsx). */
+.tuning-range {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.tuning-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.25));
+}
+.tuning-range::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.tuning-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  margin-top: -10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: #ffcf7a;
+  box-shadow: 0 0 0 4px rgba(255, 207, 122, 0.25), 0 0 18px rgba(255, 207, 122, 0.8);
+}
+.tuning-range::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 9999px;
+  background: #ffcf7a;
+  box-shadow: 0 0 0 4px rgba(255, 207, 122, 0.25), 0 0 18px rgba(255, 207, 122, 0.8);
+}
+.tuning-range:focus-visible {
+  outline: 2px solid #ffcf7a;
+  outline-offset: 4px;
+  border-radius: 9999px;
+}
+.orbit {
+  transform-origin: 0 0;
+  animation: orbit-spin 14s linear infinite;
+}
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Big Bang milestones: dim until the expansion reaches them. Fully visible by
+   default - only dimmed once the component has hydrated and marked them. */
+.milestone {
+  transition:
+    opacity 0.5s,
+    box-shadow 0.5s,
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+html.reveal-ready .milestone:not(.is-on) {
+  opacity: 0.4;
+}
+.milestone.is-on {
+  box-shadow: 0 0 28px -6px rgba(255, 207, 122, 0.55);
+}
+
+/* Percentage bars that fill as they arrive. Full by default (no JS, no
+   problem); only emptied while a revealed block is still waiting to enter. */
+.fill-bar {
+  transform: scaleX(var(--v, 1));
+  transform-origin: left;
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+}
+html.reveal-ready .reveal:not(.is-visible) .fill-bar {
+  transform: scaleX(0);
+}
+
+/* Native <details> accordions (FAQ, skeptics' ledger). They work with no JS at
+   all, are keyboard and screen-reader accessible for free, and their answers
+   are in the server HTML for search engines. */
+details.accordion > summary {
+  list-style: none;
+  cursor: pointer;
+}
+details.accordion > summary::-webkit-details-marker {
+  display: none;
+}
+details.accordion > summary .accordion-icon {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+details.accordion[open] > summary .accordion-icon {
+  transform: rotate(45deg);
+}
+details.accordion[open] > .accordion-body {
+  animation: accordion-open 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes accordion-open {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Hide scrollbars on horizontal swipe rails (still scrollable / accessible) */

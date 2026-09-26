@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { Reveal, StaggerGroup, StaggerItem } from "@/components/ui/Reveal";
 import HorizontalScroller from "@/components/ui/HorizontalScroller";
@@ -82,6 +83,24 @@ export default function Hero() {
               </span>
               . What you do with it is up to you.
             </p>
+          </Reveal>
+
+          {/* Quiet doors into the rest of the site. The descent below stays
+              the main event; these are for visitors who want the case first,
+              or the story. */}
+          <Reveal delay={0.65} from="left" exit="left" className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/evidence"
+              className="inline-flex items-center gap-2 rounded-full bg-ink/80 px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-white ring-1 ring-white/20 backdrop-blur transition hover:bg-ink"
+            >
+              See the evidence <span aria-hidden="true">→</span>
+            </Link>
+            <Link
+              href="/the-ascent"
+              className="inline-flex items-center gap-2 rounded-full bg-paper/85 px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-ink ring-1 ring-black/10 backdrop-blur transition hover:bg-paper"
+            >
+              <span aria-hidden="true" className="text-scripture-deep">✦</span> Experience The Ascent
+            </Link>
           </Reveal>
         </div>
 

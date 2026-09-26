@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: `Page not found | ${SITE_NAME}`,
+  // The root layout's template appends " | Eternal Truth".
+  title: "Page not found",
   robots: { index: false, follow: true },
 };
 
@@ -28,7 +28,7 @@ export default function NotFound() {
         <div className="mt-8 rounded-2xl bg-paper/85 p-5 backdrop-blur">
           <p className="font-sans text-base normal-case leading-relaxed tracking-normal text-ink/80 sm:text-lg">
             Whatever you were looking for is not here. The testimonies,
-            the science, and the rest of the descent still are.
+            the science, the Scripture and the rest of the journey still are.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
@@ -36,6 +36,12 @@ export default function NotFound() {
               className="rounded-full bg-blaze px-5 py-2.5 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-blaze/90"
             >
               Back to the top
+            </Link>
+            <Link
+              href="/the-ascent"
+              className="rounded-full bg-ink/10 px-5 py-2.5 text-sm font-bold uppercase tracking-[0.14em] text-ink transition hover:bg-ink/20"
+            >
+              The Ascent
             </Link>
             <Link
               href="/#playlists"

@@ -8,10 +8,10 @@ import React from "react";
  * whole app crashing.
  */
 export default class CanvasErrorBoundary extends React.Component<
-  { children: React.ReactNode },
+  { children: React.ReactNode; onFail?: () => void },
   { failed: boolean }
 > {
-  constructor(props: { children: React.ReactNode }) {
+  constructor(props: { children: React.ReactNode; onFail?: () => void }) {
     super(props);
     this.state = { failed: false };
   }
@@ -21,6 +21,7 @@ export default class CanvasErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: unknown) {
+    this.props.onFail?.();
     if (process.env.NODE_ENV !== "production") {
       console.warn("Cloud canvas disabled:", error);
     }

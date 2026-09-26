@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 /**
  * Arms the CSS reveal system. Adding `reveal-ready` (which hides `.reveal`
@@ -13,19 +14,28 @@ import { useEffect } from "react";
  *             off the top. Scroll back up and it un-sets, so the page reads the
  *             same in both directions.
  *
+ * MULTI-PAGE: this lives in the root layout, which persists across client-side
+ * navigation. It used to scan `.reveal` exactly once on first mount - fine for
+ * a one-page site, but every block on a page reached by navigation would have
+ * been hidden by `reveal-ready` and never observed, i.e. invisible forever. So
+ * the effect re-arms on every pathname change, and a MutationObserver adopts
+ * any `.reveal` that mounts later (streamed or conditionally rendered content).
+ *
  * All of it is class toggling against CSS in globals.css — no inline styles, no
  * SSR'd transforms — so this stays safe for server components and cannot
  * reintroduce the hydration mismatch that stuck a stale transform on
  * reduced-motion machines.
  */
 export default function RevealController() {
+  const pathname = usePathname();
+
   useEffect(() => {
     const root = document.documentElement;
-    const els = Array.from(document.querySelectorAll<HTMLElement>(".reveal"));
+    const els = new Set<HTMLElement>();
 
     // No observer support (or reduced motion handled in CSS) → just reveal all.
     if (!("IntersectionObserver" in window)) {
-      els.forEach((el) => el.classList.add("is-visible"));
+      document.querySelectorAll<HTMLElement>(".reveal").forEach((el) => el.classList.add("is-visible"));
       return;
     }
 
@@ -72,6 +82,10 @@ export default function RevealController() {
       const atEnd = window.scrollY >= maxScroll - 2;
 
       for (const el of els) {
+        if (!el.isConnected) {
+          els.delete(el);
+          continue;
+        }
         const rect = el.getBoundingClientRect();
         const leaving = rect.bottom < line && !(atEnd && rect.bottom > 0);
         if (leaving === el.classList.contains("is-leaving")) continue;
@@ -89,10 +103,28 @@ export default function RevealController() {
       rootMargin: `-${EXIT_LINE * 100}% 0px 0px 0px`,
     });
 
-    for (const el of els) {
-      enterIO.observe(el);
-      exitIO.observe(el);
-    }
+    /** Start observing any `.reveal` not yet tracked. */
+    const adopt = () => {
+      document.querySelectorAll<HTMLElement>(".reveal").forEach((el) => {
+        if (els.has(el)) return;
+        els.add(el);
+        if (!el.classList.contains("is-visible")) enterIO.observe(el);
+        exitIO.observe(el);
+      });
+    };
+    adopt();
+
+    // Late arrivals (streamed segments, conditionally rendered blocks). Batched
+    // to one pass per frame however many nodes land at once.
+    let pending = 0;
+    const mo = new MutationObserver(() => {
+      if (pending) return;
+      pending = requestAnimationFrame(() => {
+        pending = 0;
+        adopt();
+      });
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
 
     // Reconcile once up front: the browser may already have restored a deep
     // scroll position before this effect ran.
@@ -130,13 +162,15 @@ export default function RevealController() {
     return () => {
       enterIO.disconnect();
       exitIO.disconnect();
+      mo.disconnect();
+      if (pending) cancelAnimationFrame(pending);
       window.removeEventListener("resize", reconcileExits);
       window.clearTimeout(fallback);
       // Hiding is conditional on this class, so dropping it on the way out
       // guarantees content can never be stranded invisible by an unmount.
       root.classList.remove("reveal-ready");
     };
-  }, []);
+  }, [pathname]);
 
   return null;
 }

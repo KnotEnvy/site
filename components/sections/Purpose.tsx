@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Reveal } from "@/components/ui/Reveal";
 import SplitText from "@/components/ui/SplitText";
 import Photo from "@/components/ui/Photo";
@@ -66,6 +67,12 @@ export default function Purpose() {
               harder. Somewhere between the medical data and the testimony, a
               larger truth takes shape. Our job is to show it to you plainly.
             </p>
+            <Link
+              href="/evidence"
+              className="inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-[0.14em] text-blaze underline-offset-4 hover:underline"
+            >
+              Open the full case file <span aria-hidden="true">→</span>
+            </Link>
           </Reveal>
 
           <Reveal delay={0.2} from="in" exit="in">
@@ -104,7 +111,10 @@ export default function Purpose() {
             <p className="mt-4 rounded-2xl bg-paper/85 p-5 font-sans text-lg normal-case leading-relaxed tracking-normal text-ink/85 backdrop-blur sm:text-xl">
               We&apos;re not asking you to adopt a religion. We&apos;re asking
               you to look at the evidence and consider, honestly, where it
-              points.
+              points.{" "}
+              <Link href="/great-minds" className="font-semibold text-blaze underline-offset-4 hover:underline">
+                Some of history&apos;s greatest minds already have.
+              </Link>
             </p>
           </Reveal>
         </div>

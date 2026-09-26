@@ -1,8 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { pointer } from "@/lib/scroll";
+import { journeyForPath } from "@/lib/pages";
+import { setSkyStatus } from "@/lib/skyStatus";
 import CanvasErrorBoundary from "@/components/three/CanvasErrorBoundary";
 
 // WebGL must be client-only; the CSS sky gradient on <body> paints instantly
@@ -19,14 +22,20 @@ const MAX_RECOVERIES = 3;
  * never comes, on each loss we:
  *   1) shed the expensive passes (postprocessing, embers, hi-DPR) — "lite" mode,
  *   2) remount the canvas to get a brand-new context after a short breather.
- * After a few failures we give up and let the CSS Heaven→Hell gradient (painted
- * on <body>) carry the descent on its own.
+ * After a few failures we give up and let the CSS gradient (painted on <body>)
+ * carry the page on its own.
+ *
+ * The canvas lives in the root layout and is NEVER remounted on navigation -
+ * creating a fresh WebGL context per page would be slow and is exactly the
+ * kind of churn that provokes context loss. Instead the route picks a
+ * JOURNEY (lib/journeys.ts) and the running scene eases into it.
  */
 export default function CloudCanvas() {
   const [canvasKey, setCanvasKey] = useState(0);
   const [lite, setLite] = useState(false);
   const [disabled, setDisabled] = useState(false);
   const losses = useRef(0);
+  const journey = journeyForPath(usePathname() ?? "/");
 
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
@@ -49,6 +58,7 @@ export default function CloudCanvas() {
           "Check that hardware acceleration is enabled (edge://gpu / chrome://gpu)."
       );
       setDisabled(true);
+      setSkyStatus("disabled");
       return;
     }
     setLite(true);
@@ -59,8 +69,13 @@ export default function CloudCanvas() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
       {!disabled && (
-        <CanvasErrorBoundary>
-          <SkyCanvas key={canvasKey} lite={lite} onContextLost={handleContextLost} />
+        <CanvasErrorBoundary onFail={() => setSkyStatus("disabled")}>
+          <SkyCanvas
+            key={canvasKey}
+            lite={lite}
+            journey={journey}
+            onContextLost={handleContextLost}
+          />
         </CanvasErrorBoundary>
       )}
     </div>

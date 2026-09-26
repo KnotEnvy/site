@@ -1,4 +1,7 @@
+import Link from "next/link";
 import SplitText from "@/components/ui/SplitText";
+import { PAGES } from "@/lib/pages";
+import { THEMES } from "@/lib/content/themes";
 
 export default function Footer() {
   return (
@@ -11,6 +14,54 @@ export default function Footer() {
           Near-death experiences, examined without bias, and what they reveal
           about the truth of Scripture.
         </p>
+
+        {/* Site map. Every page reachable from every page: good for readers
+            who reach the bottom wanting more, and for search engines, which
+            weigh a page by how the rest of the site links to it. */}
+        <nav aria-label="Footer" className="mt-12 grid gap-10 border-t border-paper/15 pt-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-paper/70">Explore</p>
+            <ul className="mt-4 space-y-2">
+              {PAGES.map((p) => (
+                <li key={p.href}>
+                  <Link href={p.href} className="group inline-flex flex-col text-paper/85 transition hover:text-white">
+                    <span className="font-semibold">{p.nav}</span>
+                    <span className="text-sm text-paper/55 group-hover:text-paper/75">{p.name}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-paper/70">Scripture studies</p>
+            <ul className="mt-4 space-y-2">
+              {THEMES.map((t) => (
+                <li key={t.slug}>
+                  <Link href={`/scripture/${t.slug}`} className="text-paper/85 transition hover:text-white">
+                    {t.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-paper/70">If you are struggling</p>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-paper/70">
+              If you are thinking about ending your life, please reach out now. In the US,
+              call or text <a href="tel:988" className="font-semibold text-paper underline underline-offset-2">988</a>{" "}
+              (Suicide &amp; Crisis Lifeline). Elsewhere, find a local line at{" "}
+              <a
+                href="https://findahelpline.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-paper underline underline-offset-2"
+              >
+                findahelpline.com
+              </a>
+              .
+            </p>
+          </div>
+        </nav>
 
         {/* Contact / socials. The whole site is a one-way argument until this
             block; it is the only place a visitor can answer back. Links sit on
@@ -78,7 +129,10 @@ export default function Footer() {
         </div>
         <p className="mt-4 text-xs text-paper/40">
           Photography from Wikimedia Commons (Creative Commons / public domain);
-          full attribution in <code>/public/images/credits.json</code>.
+          full attribution in <code>/public/images/credits.json</code>. Scripture
+          quotations are from the World English Bible (public domain), with
+          God&apos;s covenant name rendered &ldquo;the LORD&rdquo; as in most
+          English translations.
         </p>
       </div>
     </footer>

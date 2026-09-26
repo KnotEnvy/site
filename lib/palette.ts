@@ -1,16 +1,16 @@
 import * as THREE from "three";
 
 /**
- * The Descent palette.
+ * Sky palettes.
  *
  * A single scalar — whole-page scroll progress in [0, 1] — drives the entire
- * atmosphere from the radiant glories of Heaven (top) down into ember-red dread
- * (bottom). Every WebGL surface (sky dome, fog, lights, sun, embers) reads its
- * colour and intensity from one sampled `SkyState`, so the world stays in
- * perfect chromatic sync as the camera falls.
+ * atmosphere. Every WebGL surface (sky dome, fog, lights, sun, embers, stars)
+ * reads its colour and intensity from one sampled `SkyState`, so the world
+ * stays in chromatic sync as the camera moves.
  *
- * Tone: "cinematic dread" — beautiful but increasingly ominous. White-gold →
- * blue day → violet dusk → ember orange → deep fire. Never gory.
+ * Each page has its own JOURNEY (lib/journeys.ts) - its own list of stops. The
+ * home page is the original Descent: Heaven (top) into ember-red dread
+ * (bottom). Its stops below are unchanged from the pre-journey version.
  *
  * Sampling is allocation-free: `sampleSky` mutates a reused `SkyState` so it can
  * be called every frame inside `useFrame` without churning the GC.
@@ -33,109 +33,144 @@ export interface SkyState {
   ambient: number;
   /** Sun emissive intensity (scales its glow/bloom). */
   sunIntensity: number;
-  /** Sun vertical position — descends below the horizon into Hell. */
+  /** Sun vertical position. */
   sunY: number;
-  /** FogExp2 density — clear in Heaven, smoky in Hell. */
+  /** FogExp2 density — clear in the light, smoky in the dark. */
   fogDensity: number;
-  /** Ember presence 0..1 — fades the rising fire particles in on descent. */
+  /** Rising particle presence 0..1 (fire embers, or motes of light). */
   ember: number;
+  /** 0 = fire embers, 1 = golden motes of light. */
+  emberTint: number;
+  /** Starfield presence 0..1. */
+  stars: number;
 }
 
-interface SkyStop {
+export type SkyStop = { t: number } & {
+  [K in keyof SkyState]: SkyState[K];
+};
+
+const c = (hex: string) => new THREE.Color(hex);
+
+type StopInput = {
   t: number;
-  top: THREE.Color;
-  horizon: THREE.Color;
-  ground: THREE.Color;
-  light: THREE.Color;
-  sun: THREE.Color;
+  top: string;
+  horizon: string;
+  ground: string;
+  light: string;
+  sun: string;
   lightIntensity: number;
   ambient: number;
   sunIntensity: number;
   sunY: number;
   fogDensity: number;
   ember: number;
+  emberTint?: number;
+  stars?: number;
+};
+
+/** Build a stop from hex strings; tint and stars default to 0. */
+export function stop(s: StopInput): SkyStop {
+  return {
+    t: s.t,
+    top: c(s.top),
+    horizon: c(s.horizon),
+    ground: c(s.ground),
+    light: c(s.light),
+    sun: c(s.sun),
+    lightIntensity: s.lightIntensity,
+    ambient: s.ambient,
+    sunIntensity: s.sunIntensity,
+    sunY: s.sunY,
+    fogDensity: s.fogDensity,
+    ember: s.ember,
+    emberTint: s.emberTint ?? 0,
+    stars: s.stars ?? 0,
+  };
 }
 
-const c = (hex: string) => new THREE.Color(hex);
-
-/** Keyframes down the descent. `t` ascends 0 → 1. */
-const STOPS: SkyStop[] = [
-  {
-    // 0.00 — HEAVEN: a glorious BLUE sky so the white clouds actually read.
-    // The "gold" of heaven comes from the bloomed sun, not a washed-out sky.
+/**
+ * THE DESCENT (home page). Tone: "cinematic dread" — beautiful but increasingly
+ * ominous. White-gold → blue day → violet dusk → ember orange → deep fire.
+ * Never gory. These values are the ones the stakeholder approved; do not tune
+ * them as a side effect of working on another journey.
+ */
+export const DESCENT_STOPS: SkyStop[] = [
+  // 0.00 — HEAVEN: a glorious BLUE sky so the white clouds actually read.
+  // The "gold" of heaven comes from the bloomed sun, not a washed-out sky.
+  stop({
     t: 0,
-    top: c("#2b86e0"),
-    horizon: c("#cfeaff"),
-    ground: c("#eaf6ff"),
-    light: c("#fff4d6"),
-    sun: c("#ffe7ac"),
+    top: "#2b86e0",
+    horizon: "#cfeaff",
+    ground: "#eaf6ff",
+    light: "#fff4d6",
+    sun: "#ffe7ac",
     lightIntensity: 2.9,
     ambient: 1.05,
     sunIntensity: 1.7,
     sunY: 10,
     fogDensity: 0.006,
     ember: 0,
-  },
-  {
-    // 0.25 — DAY: open blue
+  }),
+  // 0.25 — DAY: open blue
+  stop({
     t: 0.25,
-    top: c("#2f7fd6"),
-    horizon: c("#bfe2ff"),
-    ground: c("#e7f4ff"),
-    light: c("#ffffff"),
-    sun: c("#fff4d6"),
+    top: "#2f7fd6",
+    horizon: "#bfe2ff",
+    ground: "#e7f4ff",
+    light: "#ffffff",
+    sun: "#fff4d6",
     lightIntensity: 2.6,
     ambient: 0.95,
     sunIntensity: 1.2,
     sunY: 6,
     fogDensity: 0.01,
     ember: 0,
-  },
-  {
-    // 0.50 — DUSK: violet turn, warmth creeping into the horizon
+  }),
+  // 0.50 — DUSK: violet turn, warmth creeping into the horizon
+  stop({
     t: 0.5,
-    top: c("#46408f"),
-    horizon: c("#b87fbf"),
-    ground: c("#f0a085"),
-    light: c("#ffd0b0"),
-    sun: c("#ff9e6b"),
+    top: "#46408f",
+    horizon: "#b87fbf",
+    ground: "#f0a085",
+    light: "#ffd0b0",
+    sun: "#ff9e6b",
     lightIntensity: 2.2,
     ambient: 0.8,
     sunIntensity: 1.4,
     sunY: 2,
     fogDensity: 0.018,
     ember: 0.2,
-  },
-  {
-    // 0.75 — EMBER: the sky burns orange, clouds become lit smoke
+  }),
+  // 0.75 — EMBER: the sky burns orange, clouds become lit smoke
+  stop({
     t: 0.75,
-    top: c("#48202f"),
-    horizon: c("#b8431f"),
-    ground: c("#ff7a2a"),
-    light: c("#ff7a3c"),
-    sun: c("#ff5a1f"),
+    top: "#48202f",
+    horizon: "#b8431f",
+    ground: "#ff7a2a",
+    light: "#ff7a3c",
+    sun: "#ff5a1f",
     lightIntensity: 2.0,
     ambient: 0.6,
     sunIntensity: 1.8,
     sunY: -1,
     fogDensity: 0.03,
     ember: 0.65,
-  },
-  {
-    // 1.00 — HELL: deep red-black with fire welling from below
+  }),
+  // 1.00 — HELL: deep red-black with fire welling from below
+  stop({
     t: 1,
-    top: c("#140404"),
-    horizon: c("#6e1606"),
-    ground: c("#ff3a12"),
-    light: c("#ff4015"),
-    sun: c("#ff2a0a"),
+    top: "#140404",
+    horizon: "#6e1606",
+    ground: "#ff3a12",
+    light: "#ff4015",
+    sun: "#ff2a0a",
     lightIntensity: 1.9,
     ambient: 0.45,
     sunIntensity: 2.3,
     sunY: -7,
     fogDensity: 0.05,
     ember: 1,
-  },
+  }),
 ];
 
 const lerp = THREE.MathUtils.lerp;
@@ -154,20 +189,22 @@ export function createSkyState(): SkyState {
     sunY: 0,
     fogDensity: 0,
     ember: 0,
+    emberTint: 0,
+    stars: 0,
   };
 }
 
 /**
- * Sample the descent at progress `t` (0..1) into `out`. No allocations.
+ * Sample a journey at progress `t` (0..1) into `out`. No allocations.
  */
-export function sampleSky(t: number, out: SkyState): SkyState {
+export function sampleSky(t: number, out: SkyState, stops: SkyStop[] = DESCENT_STOPS): SkyState {
   const p = THREE.MathUtils.clamp(t, 0, 1);
 
   // Find the bracketing keyframes.
   let i = 0;
-  while (i < STOPS.length - 2 && p > STOPS[i + 1].t) i++;
-  const a = STOPS[i];
-  const b = STOPS[i + 1];
+  while (i < stops.length - 2 && p > stops[i + 1].t) i++;
+  const a = stops[i];
+  const b = stops[i + 1];
   const span = b.t - a.t || 1;
   const k = THREE.MathUtils.clamp((p - a.t) / span, 0, 1);
 
@@ -183,6 +220,35 @@ export function sampleSky(t: number, out: SkyState): SkyState {
   out.sunY = lerp(a.sunY, b.sunY, k);
   out.fogDensity = lerp(a.fogDensity, b.fogDensity, k);
   out.ember = lerp(a.ember, b.ember, k);
+  out.emberTint = lerp(a.emberTint, b.emberTint, k);
+  out.stars = lerp(a.stars, b.stars, k);
 
   return out;
+}
+
+/**
+ * Ease `current` toward `target` by `alpha` (0..1). Called every frame with a
+ * frame-rate independent alpha, this is what turns a page change into a
+ * cross-fade between two skies instead of a hard cut. No allocations.
+ */
+export function dampSky(current: SkyState, target: SkyState, alpha: number): SkyState {
+  current.top.lerp(target.top, alpha);
+  current.horizon.lerp(target.horizon, alpha);
+  current.ground.lerp(target.ground, alpha);
+  current.light.lerp(target.light, alpha);
+  current.sun.lerp(target.sun, alpha);
+  current.lightIntensity = lerp(current.lightIntensity, target.lightIntensity, alpha);
+  current.ambient = lerp(current.ambient, target.ambient, alpha);
+  current.sunIntensity = lerp(current.sunIntensity, target.sunIntensity, alpha);
+  current.sunY = lerp(current.sunY, target.sunY, alpha);
+  current.fogDensity = lerp(current.fogDensity, target.fogDensity, alpha);
+  current.ember = lerp(current.ember, target.ember, alpha);
+  current.emberTint = lerp(current.emberTint, target.emberTint, alpha);
+  current.stars = lerp(current.stars, target.stars, alpha);
+  return current;
+}
+
+/** Copy one state into another (used for the very first frame). */
+export function copySky(into: SkyState, from: SkyState): SkyState {
+  return dampSky(into, from, 1);
 }
