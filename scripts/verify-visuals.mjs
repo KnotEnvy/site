@@ -12,7 +12,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const BASE = process.argv[2] ?? "http://localhost:3000";
+const BASE = process.argv[2] ?? "http://localhost:3001";
 const OUT = process.argv[3] ?? path.join(process.cwd(), ".verify");
 const DEPTHS = [0, 0.12, 0.25, 0.4, 0.55, 0.7, 0.85, 1];
 

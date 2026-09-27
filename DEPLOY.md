@@ -8,13 +8,18 @@ the previous team.
 ## 1. Push
 
 ```bash
-git push          # branch 'master'; several commits are local-only
+git push origin master
 ```
 
-## 2. Create the Netlify site
+The Netlify site already exists and is connected to
+`github.com/KnotEnvy/site`: every push to `master` deploys to
+https://eternaltruth.netlify.app within about a minute. Work on a branch,
+verify, then fast-forward `master`.
 
-Connect the repository. This git repo's root is the Next.js app itself, so
-there is **no base directory to configure**. `netlify.toml` supplies:
+## 2. Netlify configuration (for reference, or to recreate the site)
+
+This git repo's root is the Next.js app itself, so there is **no base
+directory to configure**. `netlify.toml` supplies:
 
 - `npm run build` and `.next` as the publish directory
 - the Image CDN allowlist for `https://i.ytimg.com/vi/.*` (YouTube thumbnails
@@ -23,7 +28,7 @@ there is **no base directory to configure**. `netlify.toml` supplies:
 
 The Next.js runtime (`@netlify/plugin-nextjs`) is auto-detected. Node 24+.
 
-## 3. Verify the first deploy
+## 3. Verify a deploy
 
 | Check | Expected |
 | --- | --- |
@@ -64,11 +69,16 @@ phase to set-pieces that compiled, served HTTP 200, and rendered nothing. Run
 the harness and **look at the PNGs**:
 
 ```bash
-node scripts/verify-visuals.mjs http://localhost:3000 ./.verify   # 8 scroll depths
-node scripts/verify-rails.mjs   http://localhost:3000 ./.verify   # thumbnails + lightbox
-node scripts/verify-spots.mjs   http://localhost:3000 ./.verify   # stats, modal font, focus trap
-node scripts/verify-reduced.mjs http://localhost:3000 ./.verify   # reduced motion; exits 1 on hydration errors
+node scripts/verify-visuals.mjs http://localhost:3001 ./.verify   # 8 scroll depths of the home page
+node scripts/verify-rails.mjs   http://localhost:3001 ./.verify   # thumbnails + lightbox
+node scripts/verify-spots.mjs   http://localhost:3001 ./.verify   # stats, modal font, focus trap
+node scripts/verify-reduced.mjs http://localhost:3001 ./.verify   # reduced motion; exits 1 on hydration errors
 ```
+
+Run them against a **production** server (`npm run build`, then, as a separate
+step, `npx next start -p 3001`), and re-run the mobile passes against the live
+URL after deploying: both mobile bugs from the 2026-09 expansion showed up
+only there. The `.verify*` output folders are gitignored; delete them freely.
 
 `verify-reduced.mjs` matters more than it looks: the stakeholder's own machine
 has OS Reduced Motion enabled, and an SSR'd motion transform already caused one
