@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import {
   motion,
+  useMotionValue,
   useReducedMotion,
   useScroll,
   useTransform,
@@ -245,10 +246,82 @@ function Line({
   // only under reduced motion.
   const style = !hydrated ? undefined : reduced ? { opacity } : { opacity, y };
   return (
-    <motion.div style={style} className={className}>
+    // data-at: read by useReadingHead to know when this line lands.
+    <motion.div style={style} className={className} data-at={at}>
       {children}
     </motion.div>
   );
+}
+
+/** Where the centre of the text read so far sits on a portrait screen. The
+ *  spirit fills the band above (StoryParticles, portrait layout), so this is
+ *  the middle of the room left below it. */
+const READING_LINE = 0.55;
+
+/**
+ * Portrait screens only. The narration column is bottom-anchored with space
+ * held for the lines still to come, so on a phone the opening lines used to
+ * appear in the top third with an empty screen beneath them. This slides the
+ * column down so the text revealed SO FAR is centred on the reading line, and
+ * lets it settle back up as each line lands, until the finished chapter sits
+ * exactly where the layout puts it. Driven by the reader's own scroll.
+ */
+function useReadingHead(column: React.RefObject<HTMLDivElement | null>, progress: MotionValue<number>) {
+  const y = useMotionValue(0);
+
+  useEffect(() => {
+    const el = column.current;
+    if (!el) return;
+    const portrait = window.matchMedia("(max-width: 1023.98px)");
+    let layout: { top: number; height: number; items: { at: number; top: number; bottom: number }[] } | null = null;
+
+    const update = () => {
+      if (!layout || layout.items.length === 0) return y.set(0);
+      const p = progress.get();
+      const { items } = layout;
+      // Bottom of the revealed text, eased across each line's arrival.
+      let revealed = items[0].bottom;
+      for (let i = 1; i < items.length; i++) {
+        const t = range(p, [items[i].at, items[i].at + 0.1]);
+        if (t <= 0) break; // later lines have not begun to arrive
+        revealed = Math.max(revealed, items[i - 1].bottom + (items[i].bottom - items[i - 1].bottom) * t);
+      }
+      const centre = layout.top + (items[0].top + revealed) / 2;
+      const shift = window.innerHeight * READING_LINE - centre;
+      // Never push text below where the finished chapter ends, never lift it.
+      y.set(Math.min(Math.max(shift, 0), layout.height - revealed));
+    };
+
+    const measure = () => {
+      if (!portrait.matches) {
+        layout = null;
+      } else {
+        // offsetTop ignores transforms, so the lines' own drift and this
+        // shift never feed back into the measurement. The column is
+        // `relative`, so it is every line's offsetParent.
+        const items = Array.from(el.querySelectorAll<HTMLElement>("[data-at]"))
+          .map((n) => ({ at: Number(n.dataset.at), top: n.offsetTop, bottom: n.offsetTop + n.offsetHeight }))
+          .sort((a, b) => a.at - b.at);
+        layout = { top: el.offsetTop, height: el.offsetHeight, items };
+      }
+      update();
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    portrait.addEventListener("change", measure);
+    window.addEventListener("resize", update, { passive: true });
+    const off = progress.on("change", update);
+    return () => {
+      ro.disconnect();
+      portrait.removeEventListener("change", measure);
+      window.removeEventListener("resize", update);
+      off();
+    };
+  }, [column, progress, y]);
+
+  return y;
 }
 
 function FruitChip({ progress, at, word }: { progress: MotionValue<number>; at: number; word: string }) {
@@ -281,6 +354,10 @@ function ChapterSection({
   const local = useRef<HTMLElement | null>(null);
   const { scrollYProgress } = useScroll({ target: local, offset: ["start start", "end end"] });
   const sky = useSkyStatus();
+  const hydrated = useHydrated();
+  const reduced = useReducedMotion();
+  const column = useRef<HTMLDivElement | null>(null);
+  const readingY = useReadingHead(column, scrollYProgress);
   const n = chapter.lines.length;
   // Narration arrives across the first ~55% of the pin; the verse after it.
   const lineAt = (i: number) => 0.04 + (i / Math.max(n, 1)) * 0.46;
@@ -304,7 +381,8 @@ function ChapterSection({
           than the screen, and a fixed-height stage would clip the end of it. */}
       <div className="sticky top-0 flex min-h-[100svh] flex-col justify-end pb-8 pt-24 lg:justify-center lg:pb-0">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-2">
-          <div className="relative">
+          {/* Under reduced motion the column holds still (opacity-only story). */}
+          <motion.div ref={column} style={hydrated && !reduced ? { y: readingY } : undefined} className="relative">
             {/* A feathered scrim: the sky runs from black void to blazing
                 gold across this page, and the narration must read on both.
                 `closest-side` so the ellipse reaches exactly zero at the box
@@ -376,7 +454,7 @@ function ChapterSection({
                 </div>
               </Line>
             )}
-          </div>
+          </motion.div>
 
           {/* The stage. Normally empty: the WebGL spirit is drawn here by the
               sky canvas. If WebGL has failed on this device, a still
